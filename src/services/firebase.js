@@ -67,7 +67,8 @@ const DEFAULT_USERS = {
     role: "admin",
     level: 5,
     servedCount: 150,
-    punctuality: 100
+    punctuality: 100,
+    photoURL: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&h=150&q=80"
   },
   "parent-uid": {
     uid: "parent-uid",
@@ -75,7 +76,8 @@ const DEFAULT_USERS = {
     name: "Carlos",
     lastName: "Sánchez",
     role: "padre",
-    childEmails: ["monaguillo@joselito.com"]
+    childEmails: ["monaguillo@joselito.com"],
+    photoURL: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&h=150&q=80"
   },
   "monaguillo-uid": {
     uid: "monaguillo-uid",
@@ -86,7 +88,8 @@ const DEFAULT_USERS = {
     level: 4,
     servedCount: 42,
     punctuality: 98,
-    activeRecurrence: true // Confirm status for next month
+    activeRecurrence: true,
+    photoURL: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80"
   },
   "mateo-uid": {
     uid: "mateo-uid",
@@ -97,7 +100,8 @@ const DEFAULT_USERS = {
     level: 3,
     servedCount: 28,
     punctuality: 95,
-    activeRecurrence: true
+    activeRecurrence: true,
+    photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80"
   },
   "juan-uid": {
     uid: "juan-uid",
@@ -108,7 +112,8 @@ const DEFAULT_USERS = {
     level: 2,
     servedCount: 15,
     punctuality: 90,
-    activeRecurrence: false
+    activeRecurrence: false,
+    photoURL: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150&q=80"
   },
   "sofia-uid": {
     uid: "sofia-uid",
@@ -119,7 +124,8 @@ const DEFAULT_USERS = {
     level: 4,
     servedCount: 37,
     punctuality: 97,
-    activeRecurrence: true
+    activeRecurrence: true,
+    photoURL: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80"
   }
 };
 
@@ -414,7 +420,8 @@ const simulatedAuth = {
         level: 4,
         servedCount: 42,
         punctuality: 98,
-        activeRecurrence: true
+        activeRecurrence: true,
+        photoURL: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80"
       };
       users["monaguillo-uid"] = googleUser;
       setStorageItem("joselito_users", users);
@@ -462,7 +469,9 @@ const simulatedDb = {
       date: dateStr,
       userUid: user.uid,
       userName: `${user.name} ${user.lastName}`,
+      userEmail: user.email,
       userRole: role || "Acólito",
+      userPhotoURL: user.photoURL || "",
       status: "pending"
     };
     
@@ -782,13 +791,19 @@ export const auth = {
         if (firebaseUser) {
           try {
             const userDoc = await getDoc(doc(realDb, "users", firebaseUser.uid));
-            callback({ uid: firebaseUser.uid, email: firebaseUser.email, ...userDoc.data() });
+            callback({ 
+              uid: firebaseUser.uid, 
+              email: firebaseUser.email, 
+              photoURL: firebaseUser.photoURL || "",
+              ...userDoc.data() 
+            });
           } catch (e) {
             console.error("Error fetching user profile in auth state change:", e);
             callback({ 
               uid: firebaseUser.uid, 
               email: firebaseUser.email, 
               name: firebaseUser.displayName || "Usuario",
+              photoURL: firebaseUser.photoURL || "",
               lastName: "",
               role: "monaguillo",
               error: "Error de permisos en Firestore. Asegúrate de configurar las reglas en tu consola de Firebase."
@@ -814,6 +829,7 @@ export const auth = {
             email: res.user.email,
             name: res.user.displayName?.split(" ")[0] || "Google User",
             lastName: res.user.displayName?.split(" ").slice(1).join(" ") || "",
+            photoURL: res.user.photoURL || "",
             role: "monaguillo",
             level: 1,
             servedCount: 0,
@@ -822,7 +838,12 @@ export const auth = {
           await setDoc(doc(realDb, "users", res.user.uid), userProfile);
           return userProfile;
         }
-        return { uid: res.user.uid, email: res.user.email, ...userDoc.data() };
+        const existingData = userDoc.data();
+        if (!existingData.photoURL && res.user.photoURL) {
+          await updateDoc(doc(realDb, "users", res.user.uid), { photoURL: res.user.photoURL });
+          existingData.photoURL = res.user.photoURL;
+        }
+        return { uid: res.user.uid, email: res.user.email, photoURL: res.user.photoURL || existingData.photoURL || "", ...existingData };
       } catch (e) {
         return handleFirestoreError(e);
       }
@@ -872,7 +893,9 @@ export const db = {
           date: dateStr,
           userUid: user.uid,
           userName: `${user.name} ${user.lastName}`,
+          userEmail: user.email,
           userRole: role || "Acólito",
+          userPhotoURL: user.photoURL || "",
           status: "pending"
         };
         

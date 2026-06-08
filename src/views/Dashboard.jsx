@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db, dev } from "../services/firebase";
+import { alerts } from "../services/alerts";
 
 export default function Dashboard({ user, onSelectMass }) {
   const [weekDays, setWeekDays] = useState([]);
@@ -94,17 +95,17 @@ export default function Dashboard({ user, onSelectMass }) {
       await db.registerForMass(massId, user, "Acólito");
       window.dispatchEvent(new Event("mass-state-updated"));
     } catch (err) {
-      alert(err.message);
+      alerts.alert(err.message, "Error al anotarse", "error");
     }
   };
 
-  const handleRequestSwap = () => {
+  const handleRequestSwap = async () => {
     if (user.role !== "monaguillo") {
-      alert("Solo los monaguillos pueden solicitar un cambio de turno.");
+      alerts.alert("Solo los monaguillos pueden solicitar un cambio de turno.", "Operación no permitida", "warning");
       return;
     }
     // Simulate shift swap request
-    alert("Tu solicitud de cambio de turno ha sido publicada. Los demás servidores recibirán una notificación.");
+    await alerts.alert("Tu solicitud de cambio de turno ha sido publicada. Los demás servidores recibirán una notificación.", "Cambio de Turno", "success");
     // Trigger in-app notification simulation for others
     const event = new Event("notifications-updated");
     window.dispatchEvent(event);
@@ -233,13 +234,24 @@ export default function Dashboard({ user, onSelectMass }) {
                   {mass.registrations && mass.registrations.length > 0 ? (
                     <div className="flex -space-x-2.5 overflow-hidden">
                       {mass.registrations.slice(0, 4).map((reg) => (
-                        <div 
-                          key={reg.id} 
-                          className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container ring-2 ring-white flex items-center justify-center text-[10px] font-bold uppercase"
-                          title={`${reg.userName} (${reg.userRole})`}
-                        >
-                          {reg.userName.charAt(0)}
-                        </div>
+                        reg.userPhotoURL ? (
+                          <img
+                            key={reg.id}
+                            src={reg.userPhotoURL}
+                            alt={`${reg.userName} avatar`}
+                            referrerPolicy="no-referrer"
+                            className="w-8 h-8 rounded-full object-cover ring-2 ring-white"
+                            title={`${reg.userName} (${reg.userRole})`}
+                          />
+                        ) : (
+                          <div 
+                            key={reg.id} 
+                            className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container ring-2 ring-white flex items-center justify-center text-[10px] font-bold uppercase"
+                            title={`${reg.userName} (${reg.userRole})`}
+                          >
+                            {reg.userName.charAt(0)}
+                          </div>
+                        )
                       ))}
                       {mass.registrations.length > 4 && (
                         <div className="w-8 h-8 rounded-full bg-surface-container-high text-primary ring-2 ring-white flex items-center justify-center text-[9px] font-bold">

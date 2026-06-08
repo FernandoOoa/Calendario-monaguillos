@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db, dev } from "../services/firebase";
+import { alerts } from "../services/alerts";
 
 export default function MassDetailModal({ mass, dateStr, user, onClose }) {
   const [registrations, setRegistrations] = useState([]);
@@ -69,20 +70,21 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
       await db.registerForMass(mass.id, user, selectedRole);
       window.dispatchEvent(new Event("mass-state-updated"));
     } catch (err) {
-      alert(err.message);
+      alerts.alert(err.message, "Error al anotarse", "error");
     } finally {
       setLoading(false);
     }
   };
 
   const handleCancel = async () => {
-    if (!confirm("¿Estás seguro de que deseas cancelar tu asistencia a esta misa?")) return;
+    const ok = await alerts.confirm("¿Estás seguro de que deseas cancelar tu asistencia a esta misa?", "Cancelar asistencia");
+    if (!ok) return;
     setLoading(true);
     try {
       await db.cancelMassRegistration(mass.id, user.uid, dateStr);
       window.dispatchEvent(new Event("mass-state-updated"));
     } catch (err) {
-      alert(err.message);
+      alerts.alert(err.message, "Error al cancelar", "error");
     } finally {
       setLoading(false);
     }
@@ -94,7 +96,7 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
       await db.checkInForMass(mass.id, user.uid, dateStr);
       window.dispatchEvent(new Event("mass-state-updated"));
     } catch (err) {
-      alert(err.message);
+      alerts.alert(err.message, "Error al realizar check-in", "error");
     } finally {
       setLoading(false);
     }
@@ -200,9 +202,18 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
                       }`}
                     >
                       <div className="relative">
-                        <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold uppercase">
-                          {reg.userName.charAt(0)}
-                        </div>
+                        {reg.userPhotoURL ? (
+                          <img
+                            src={reg.userPhotoURL}
+                            alt={`${reg.userName} avatar`}
+                            referrerPolicy="no-referrer"
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold uppercase">
+                            {reg.userName.charAt(0)}
+                          </div>
+                        )}
                         {isCurrent && (
                           <div className="absolute -bottom-1 -right-1 bg-primary text-white text-[8px] rounded-full px-1 py-0.5 leading-none font-bold scale-90">
                             TÚ

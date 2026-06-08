@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db, dev } from "../services/firebase";
+import { alerts } from "../services/alerts";
 import DevPanel from "../components/DevPanel";
 
 export default function Profile({ user, onUpdateUser }) {
@@ -68,7 +69,7 @@ export default function Profile({ user, onUpdateUser }) {
         onUpdateUser({ ...user, activeRecurrence: val });
       }
     } catch (err) {
-      alert("Error actualizando recurrencia");
+      alerts.alert("Error actualizando recurrencia", "Error", "error");
     }
   };
 
@@ -144,10 +145,19 @@ export default function Profile({ user, onUpdateUser }) {
       {/* Header Profile Section */}
       <section className="flex flex-col md:flex-row items-center md:items-end gap-6 mb-8 text-center md:text-left bg-white p-6 rounded-3xl border border-outline-variant/40 card-shadow">
         <div className="relative">
-          <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-3xl font-bold border-4 border-white card-shadow uppercase">
-            {user.name.charAt(0)}
-            {user.lastName?.charAt(0)}
-          </div>
+          {user.photoURL ? (
+            <img
+              src={user.photoURL}
+              alt={`${user.name} avatar`}
+              referrerPolicy="no-referrer"
+              className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white card-shadow"
+            />
+          ) : (
+            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-3xl font-bold border-4 border-white card-shadow uppercase">
+              {user.name.charAt(0)}
+              {user.lastName?.charAt(0)}
+            </div>
+          )}
           <div className="absolute bottom-1 right-1 bg-secondary-container p-1.5 rounded-full shadow-md border border-white flex items-center justify-center">
             <span className="material-symbols-outlined text-on-secondary-container text-xs font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>
               verified

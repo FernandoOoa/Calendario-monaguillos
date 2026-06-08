@@ -11,7 +11,7 @@ export default function Navigation({ user, currentView, onViewChange, onLogout }
         <div className="flex justify-between items-center w-full px-container-padding-mobile md:px-container-padding-desktop max-w-7xl mx-auto h-16">
           {/* Logo / Brand */}
           <div 
-            onClick={() => onViewChange("dashboard")}
+            onClick={() => onViewChange("home")}
             className="flex items-center gap-2 cursor-pointer group"
           >
             <span className="material-symbols-outlined text-primary text-2xl group-hover:scale-115 transition-transform" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -25,6 +25,16 @@ export default function Navigation({ user, currentView, onViewChange, onLogout }
           {/* Desktop Nav Items */}
           <nav className="hidden md:flex items-center gap-8">
             <button
+              onClick={() => onViewChange("home")}
+              className={`font-semibold text-xs tracking-wider pb-1 border-b-2 transition-all ${
+                currentView === "home"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-on-surface-variant hover:text-primary hover:border-outline-variant"
+              }`}
+            >
+              INICIO
+            </button>
+            <button
               onClick={() => onViewChange("dashboard")}
               className={`font-semibold text-xs tracking-wider pb-1 border-b-2 transition-all ${
                 currentView === "dashboard"
@@ -32,7 +42,7 @@ export default function Navigation({ user, currentView, onViewChange, onLogout }
                   : "border-transparent text-on-surface-variant hover:text-primary hover:border-outline-variant"
               }`}
             >
-              DASHBOARD
+              CALENDARIO
             </button>
             <button
               onClick={() => onViewChange("profile")}
@@ -73,10 +83,19 @@ export default function Navigation({ user, currentView, onViewChange, onLogout }
             </button>
 
             {/* User Avatar tag */}
-            <div className="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold border border-outline-variant uppercase">
-              {user.name ? user.name.charAt(0) : (user.email ? user.email.charAt(0) : "U")}
-              {user.lastName ? user.lastName.charAt(0) : ""}
-            </div>
+            {user.photoURL ? (
+              <img
+                src={user.photoURL}
+                alt={`${user.name || "Usuario"} avatar`}
+                referrerPolicy="no-referrer"
+                className="w-9 h-9 rounded-full object-cover border border-outline-variant"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold border border-outline-variant uppercase">
+                {user.name ? user.name.charAt(0) : (user.email ? user.email.charAt(0) : "U")}
+                {user.lastName ? user.lastName.charAt(0) : ""}
+              </div>
+            )}
 
             {/* Logout button - Mobile */}
             <button
@@ -92,7 +111,22 @@ export default function Navigation({ user, currentView, onViewChange, onLogout }
 
       {/* Bottom Tab Bar - Mobile View Only (hidden on md and up) */}
       <nav className="md:hidden fixed bottom-0 left-0 w-full z-40 bg-white border-t border-outline-variant/30 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] pb-safe h-16 flex justify-around items-center">
-        {/* Dashboard Tab */}
+        {/* Inicio Tab */}
+        <button
+          onClick={() => onViewChange("home")}
+          className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-center transition-all ${
+            currentView === "home"
+              ? "text-primary"
+              : "text-on-surface-variant"
+          }`}
+        >
+          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: currentView === "home" ? "'FILL' 1" : "'FILL' 0" }}>
+            home
+          </span>
+          <span className="text-[10px] font-semibold tracking-wider mt-0.5">Inicio</span>
+        </button>
+
+        {/* Calendario Tab */}
         <button
           onClick={() => onViewChange("dashboard")}
           className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-center transition-all ${
@@ -102,9 +136,9 @@ export default function Navigation({ user, currentView, onViewChange, onLogout }
           }`}
         >
           <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: currentView === "dashboard" ? "'FILL' 1" : "'FILL' 0" }}>
-            dashboard
+            calendar_month
           </span>
-          <span className="text-[10px] font-semibold tracking-wider mt-0.5">Dashboard</span>
+          <span className="text-[10px] font-semibold tracking-wider mt-0.5">Calendario</span>
         </button>
 
         {/* Profile Tab */}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { dev } from "../services/firebase";
+import { alerts } from "../services/alerts";
 
 export default function DevPanel() {
   const [simTime, setSimTime] = useState("");
@@ -51,15 +52,17 @@ export default function DevPanel() {
     dev.setSimulatedTime(null);
   };
 
-  const handleResetDb = () => {
-    if (confirm("¿Estás seguro de reiniciar la base de datos a sus valores semilla predeterminados?")) {
+  const handleResetDb = async () => {
+    const ok = await alerts.confirm("¿Estás seguro de reiniciar la base de datos a sus valores semilla predeterminados?", "Reiniciar Base de Datos");
+    if (ok) {
       dev.resetDatabase();
     }
   };
 
-  const handleToggleFirebase = () => {
+  const handleToggleFirebase = async () => {
     const nextMode = !realFirebase;
-    if (confirm(`¿Cambiar al modo Firebase ${nextMode ? 'REAL (Firestore/Auth)' : 'SIMULADO (LocalStorage)'}? La página se recargará.`)) {
+    const ok = await alerts.confirm(`¿Cambiar al modo Firebase ${nextMode ? 'REAL (Firestore/Auth)' : 'SIMULADO (LocalStorage)'}? La página se recargará.`, "Cambiar Entorno");
+    if (ok) {
       dev.toggleRealFirebase(nextMode);
     }
   };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db, dev } from "../services/firebase";
+import { alerts } from "../services/alerts";
 
 export default function Admin({ user }) {
   const [activeTab, setActiveTab] = useState("create"); // 'create', 'manage', 'attendance', 'emails'
@@ -147,7 +148,8 @@ export default function Admin({ user }) {
   };
 
   const handleDeleteMass = async (massId) => {
-    if (!confirm("¿Estás seguro de eliminar esta misa? Se cancelarán todos los registros asignados.")) return;
+    const ok = await alerts.confirm("¿Estás seguro de eliminar esta misa? Se cancelarán todos los registros asignados.", "Eliminar Misa");
+    if (!ok) return;
     try {
       await db.deleteMass(massId);
       setSuccessMsg("Misa eliminada correctamente.");

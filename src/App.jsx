@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { auth } from "./services/firebase";
 import Navigation from "./components/Navigation";
 import Auth from "./views/Auth";
+import CustomAlertModal from "./components/CustomAlertModal";
+import Home from "./views/Home";
 import Dashboard from "./views/Dashboard";
 import Profile from "./views/Profile";
 import Admin from "./views/Admin";
@@ -9,7 +11,7 @@ import MassDetailModal from "./views/MassDetailModal";
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [currentView, setCurrentView] = useState("dashboard"); // 'dashboard', 'profile', 'admin'
+  const [currentView, setCurrentView] = useState("home"); // 'home', 'dashboard', 'profile', 'admin'
   const [selectedMass, setSelectedMass] = useState(null);
   const [selectedMassDateStr, setSelectedMassDateStr] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ export default function App() {
         if (firebaseUser.role === "admin") {
           setCurrentView("admin");
         } else {
-          setCurrentView("dashboard");
+          setCurrentView("home");
         }
       }
     });
@@ -38,7 +40,7 @@ export default function App() {
     if (authenticatedUser.role === "admin") {
       setCurrentView("admin");
     } else {
-      setCurrentView("dashboard");
+      setCurrentView("home");
     }
   };
 
@@ -46,7 +48,7 @@ export default function App() {
     try {
       await auth.logout();
       setUser(null);
-      setCurrentView("dashboard");
+      setCurrentView("home");
     } catch (e) {
       console.error("Logout failed", e);
     }
@@ -82,6 +84,7 @@ export default function App() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Auth onAuthSuccess={handleAuthSuccess} />
+        <CustomAlertModal />
       </div>
     );
   }
@@ -108,6 +111,10 @@ export default function App() {
 
       {/* Main Content Area with Bottom Padding on Mobile for the navbar */}
       <main className="flex-grow flex flex-col pb-16 md:pb-0">
+        {currentView === "home" && (
+          <Home user={user} onSelectMass={handleSelectMass} />
+        )}
+
         {currentView === "dashboard" && (
           <Dashboard user={user} onSelectMass={handleSelectMass} />
         )}
@@ -148,6 +155,7 @@ export default function App() {
         />
       )}
 
+      <CustomAlertModal />
     </div>
   );
 }
