@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { auth } from "./services/firebase";
 import Navigation from "./components/Navigation";
-import DevPanel from "./components/DevPanel";
 import Auth from "./views/Auth";
 import Dashboard from "./views/Dashboard";
 import Profile from "./views/Profile";
@@ -83,7 +82,6 @@ export default function App() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Auth onAuthSuccess={handleAuthSuccess} />
-        <DevPanel />
       </div>
     );
   }
@@ -150,8 +148,6 @@ export default function App() {
         />
       )}
 
-      {/* Developer Tool Drawer */}
-      <DevPanel />
     </div>
   );
 }

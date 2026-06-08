@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db, dev } from "../services/firebase";
+import DevPanel from "../components/DevPanel";
 
 export default function Profile({ user, onUpdateUser }) {
   const [stats, setStats] = useState({ servedCount: 0, punctuality: 100, level: 1 });
@@ -313,72 +314,76 @@ export default function Profile({ user, onUpdateUser }) {
 
         {/* Right Column: History & Details */}
         <div className="lg:col-span-8">
-          <div className="bg-white p-6 rounded-3xl border border-outline-variant/40 card-shadow h-full flex flex-col">
-            <h2 className="text-base font-bold text-on-surface mb-6 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">history</span>
-              {user.role === "monaguillo" ? "Mi Historial de Servicio" : "Resumen de Turnos y Actividad"}
-            </h2>
+          {user.role === "admin" ? (
+            <DevPanel />
+          ) : (
+            <div className="bg-white p-6 rounded-3xl border border-outline-variant/40 card-shadow h-full flex flex-col">
+              <h2 className="text-base font-bold text-on-surface mb-6 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">history</span>
+                {user.role === "monaguillo" ? "Mi Historial de Servicio" : "Resumen de Turnos y Actividad"}
+              </h2>
 
-            {user.role === "monaguillo" ? (
-              history.length === 0 ? (
-                <div className="text-center py-16 text-xs text-on-surface-variant/70 italic bg-surface-container-low rounded-2xl flex-grow flex flex-col items-center justify-center gap-2">
-                  <span className="material-symbols-outlined text-3xl">hourglass_empty</span>
-                  Aún no has registrado misas servidas en tu historial.
-                </div>
-              ) : (
-                <div className="overflow-x-auto flex-grow no-scrollbar">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="border-b border-outline-variant text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                        <th className="py-3">Misa / Ubicación</th>
-                        <th className="py-3">Fecha y Hora</th>
-                        <th className="py-3">Rol Litúrgico</th>
-                        <th className="py-3">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-outline-variant/50">
-                      {history.map((hist) => (
-                        <tr key={hist.id} className="hover:bg-surface-container/30 transition-colors">
-                          <td className="py-4">
-                            <p className="font-bold text-on-surface">{hist.title}</p>
-                            <p className="text-[10px] text-on-surface-variant">{hist.location}</p>
-                          </td>
-                          <td className="py-4">
-                            <p className="font-bold text-on-surface">{new Date(hist.date + "T00:00:00").toLocaleDateString()}</p>
-                            <p className="text-[10px] text-on-surface-variant">{hist.time}</p>
-                          </td>
-                          <td className="py-4">
-                            <span className="px-2.5 py-0.5 rounded-md bg-secondary-fixed text-on-secondary-fixed font-bold text-[9px] uppercase tracking-wide">
-                              {hist.role}
-                            </span>
-                          </td>
-                          <td className="py-4">
-                            <span className="flex items-center gap-1 font-semibold text-on-surface">
-                              <span className={`w-2 h-2 rounded-full ${
-                                hist.status.includes("Cumplido") ? "bg-green-600" : "bg-error"
-                              }`} />
-                              {hist.status}
-                            </span>
-                          </td>
+              {user.role === "monaguillo" ? (
+                history.length === 0 ? (
+                  <div className="text-center py-16 text-xs text-on-surface-variant/70 italic bg-surface-container-low rounded-2xl flex-grow flex flex-col items-center justify-center gap-2">
+                    <span className="material-symbols-outlined text-3xl">hourglass_empty</span>
+                    Aún no has registrado misas servidas en tu historial.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto flex-grow no-scrollbar">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-outline-variant text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                          <th className="py-3">Misa / Ubicación</th>
+                          <th className="py-3">Fecha y Hora</th>
+                          <th className="py-3">Rol Litúrgico</th>
+                          <th className="py-3">Estado</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-outline-variant/50">
+                        {history.map((hist) => (
+                          <tr key={hist.id} className="hover:bg-surface-container/30 transition-colors">
+                            <td className="py-4">
+                              <p className="font-bold text-on-surface">{hist.title}</p>
+                              <p className="text-[10px] text-on-surface-variant">{hist.location}</p>
+                            </td>
+                            <td className="py-4">
+                              <p className="font-bold text-on-surface">{new Date(hist.date + "T00:00:00").toLocaleDateString()}</p>
+                              <p className="text-[10px] text-on-surface-variant">{hist.time}</p>
+                            </td>
+                            <td className="py-4">
+                              <span className="px-2.5 py-0.5 rounded-md bg-secondary-fixed text-on-secondary-fixed font-bold text-[9px] uppercase tracking-wide">
+                                {hist.role}
+                              </span>
+                            </td>
+                            <td className="py-4">
+                              <span className="flex items-center gap-1 font-semibold text-on-surface">
+                                <span className={`w-2 h-2 rounded-full ${
+                                  hist.status.includes("Cumplido") ? "bg-green-600" : "bg-error"
+                                }`} />
+                                {hist.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              ) : (
+                // Parent summary info
+                <div className="flex-grow flex flex-col justify-center items-center text-center p-8 bg-surface-container-low rounded-2xl text-xs text-on-surface-variant/80">
+                  <span className="material-symbols-outlined text-4xl text-primary mb-3">supervisor_account</span>
+                  <p className="font-bold text-on-surface text-sm mb-2">Panel de Control de Padre / Tutor</p>
+                  <p className="max-w-md leading-relaxed">
+                    Desde esta sección puedes monitorear el servicio al altar de tus hijos. 
+                    Recibirás alertas en tu correo electrónico en tiempo real en caso de que tus hijos cancelen su asistencia de último minuto, 
+                    permitiéndote estar enterado de sus responsabilidades parroquiales.
+                  </p>
                 </div>
-              )
-            ) : (
-              // Parent summary info
-              <div className="flex-grow flex flex-col justify-center items-center text-center p-8 bg-surface-container-low rounded-2xl text-xs text-on-surface-variant/80">
-                <span className="material-symbols-outlined text-4xl text-primary mb-3">supervisor_account</span>
-                <p className="font-bold text-on-surface text-sm mb-2">Panel de Control de Padre / Tutor</p>
-                <p className="max-w-md leading-relaxed">
-                  Desde esta sección puedes monitorear el servicio al altar de tus hijos. 
-                  Recibirás alertas en tu correo electrónico en tiempo real en caso de que tus hijos cancelen su asistencia de último minuto, 
-                  permitiéndote estar enterado de sus responsabilidades parroquiales.
-                </p>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
 
       </div>
