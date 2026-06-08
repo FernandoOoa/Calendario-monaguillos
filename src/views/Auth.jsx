@@ -17,7 +17,8 @@ export default function Auth({ onAuthSuccess }) {
   useEffect(() => {
     // Check if we are running in real Firebase mode or simulation mode
     const checkMode = () => {
-      setIsSimulationMode(localStorage.getItem("joselito_use_real_firebase") !== "true");
+      const stored = localStorage.getItem("joselito_use_real_firebase");
+      setIsSimulationMode(stored === null ? false : stored !== "true");
     };
     checkMode();
   }, []);

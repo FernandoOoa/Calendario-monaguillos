@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { db, dev } from "../services/firebase";
 import { alerts } from "../services/alerts";
-import { formatTimeToAMPM } from "../utils/time";
+import { formatTimeToAMPM, getLocalDateString } from "../utils/time";
 
 export default function Dashboard({ user, onSelectMass }) {
   const [weekDays, setWeekDays] = useState([]);
@@ -26,7 +26,7 @@ export default function Dashboard({ user, onSelectMass }) {
       const tempDate = new Date(monday);
       tempDate.setDate(monday.getDate() + i);
       
-      const dateStr = tempDate.toISOString().split("T")[0];
+      const dateStr = getLocalDateString(tempDate);
       const dayOfWeek = tempDate.getDay();
       
       days.push({
@@ -42,7 +42,7 @@ export default function Dashboard({ user, onSelectMass }) {
     setWeekDays(days);
     
     // Set selected date to today if it falls in this week, otherwise Monday
-    const todayStr = refDate.toISOString().split("T")[0];
+    const todayStr = getLocalDateString(refDate);
     const matchToday = days.find(d => d.dateStr === todayStr);
     
     if (matchToday) {
@@ -93,7 +93,7 @@ export default function Dashboard({ user, onSelectMass }) {
   const handleRegister = async (e, massId) => {
     e.stopPropagation();
     try {
-      await db.registerForMass(massId, user, "Acólito");
+      await db.registerForMass(massId, user, "Acólito", selectedDate.dateStr);
       window.dispatchEvent(new Event("mass-state-updated"));
     } catch (err) {
       alerts.alert(err.message, "Error al anotarse", "error");

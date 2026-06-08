@@ -21,6 +21,7 @@ import {
   deleteDoc, 
   updateDoc 
 } from "firebase/firestore";
+import { getLocalDateString } from "../utils/time";
 
 // Provided Firebase Configuration
 const firebaseConfig = {
@@ -47,7 +48,8 @@ try {
 
 // Check if we should use real Firebase (toggled in the developer panel)
 const isRealFirebaseEnabled = () => {
-  return localStorage.getItem("joselito_use_real_firebase") === "true";
+  const stored = localStorage.getItem("joselito_use_real_firebase");
+  return stored === null ? true : stored === "true";
 };
 
 const toggleRealFirebase = (enable) => {
@@ -455,18 +457,18 @@ const simulatedDb = {
     });
   },
   
-  registerForMass: async (massId, user, role) => {
+  registerForMass: async (massId, user, role, dateStr) => {
     const regs = getStorageItem("joselito_registrations", []);
     
     // Prevent duplicate registration on the same date
-    const dateStr = getSimulatedTime().toISOString().split("T")[0]; // Use current simulated date
-    const exists = regs.some(r => r.massId === massId && r.userUid === user.uid && r.date === dateStr);
+    const targetDateStr = dateStr || getLocalDateString(getSimulatedTime());
+    const exists = regs.some(r => r.massId === massId && r.userUid === user.uid && r.date === targetDateStr);
     if (exists) throw new Error("Ya estás registrado para esta misa.");
     
     const newReg = {
       id: `reg-${Date.now()}`,
       massId,
-      date: dateStr,
+      date: targetDateStr,
       userUid: user.uid,
       userName: `${user.name} ${user.lastName}`,
       userEmail: user.email,
@@ -875,22 +877,22 @@ export const db = {
     return simulatedDb.getMassesForDay(dayOfWeek, dateStr);
   },
   
-  registerForMass: async (massId, user, role) => {
+  registerForMass: async (massId, user, role, dateStr) => {
     if (isRealFirebaseEnabled() && realDb) {
       try {
-        const dateStr = getSimulatedTime().toISOString().split("T")[0];
+        const targetDateStr = dateStr || getLocalDateString(getSimulatedTime());
         const q = query(
           collection(realDb, "registrations"), 
           where("massId", "==", massId),
           where("userUid", "==", user.uid),
-          where("date", "==", dateStr)
+          where("date", "==", targetDateStr)
         );
         const snap = await getDocs(q);
         if (!snap.empty) throw new Error("Ya estás registrado para esta misa.");
         
         const newReg = {
           massId,
-          date: dateStr,
+          date: targetDateStr,
           userUid: user.uid,
           userName: `${user.name} ${user.lastName}`,
           userEmail: user.email,
@@ -905,7 +907,7 @@ export const db = {
           to: user.email,
           message: {
             subject: "Confirmación de Asistencia a Misa",
-            html: `<p>Hola <strong>${user.name}</strong>, te has anotado como <strong>${role}</strong> para la misa el día <strong>${dateStr}</strong>.</p>`
+            html: `<p>Hola <strong>${user.name}</strong>, te has anotado como <strong>${role}</strong> para la misa el día <strong>${targetDateStr}</strong>.</p>`
           }
         });
         
@@ -914,7 +916,7 @@ export const db = {
         return handleFirestoreError(e);
       }
     }
-    return simulatedDb.registerForMass(massId, user, role);
+    return simulatedDb.registerForMass(massId, user, role, dateStr);
   },
   
   cancelMassRegistration: async (massId, userUid, dateStr) => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { db, dev } from "../services/firebase";
 import { alerts } from "../services/alerts";
-import { formatTimeToAMPM } from "../utils/time";
+import { formatTimeToAMPM, getLocalDateString } from "../utils/time";
 
 export default function Admin({ user }) {
   const [activeTab, setActiveTab] = useState("create"); // 'create', 'manage', 'attendance', 'emails'
@@ -59,12 +59,12 @@ export default function Admin({ user }) {
     loadAdminData();
     
     // Set initial inspect date to today
-    const todayStr = dev.getSimulatedTime().toISOString().split("T")[0];
+    const todayStr = getLocalDateString(dev.getSimulatedTime());
     setInspectDate(todayStr);
 
     const handleUpdate = () => loadAdminData();
     const handleTimeChange = () => {
-      const newTodayStr = dev.getSimulatedTime().toISOString().split("T")[0];
+      const newTodayStr = getLocalDateString(dev.getSimulatedTime());
       setInspectDate(newTodayStr);
       loadAdminData();
     };

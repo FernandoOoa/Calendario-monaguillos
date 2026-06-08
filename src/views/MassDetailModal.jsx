@@ -68,7 +68,7 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
     if (user.role !== "monaguillo") return;
     setLoading(true);
     try {
-      await db.registerForMass(mass.id, user, selectedRole);
+      await db.registerForMass(mass.id, user, selectedRole, dateStr);
       window.dispatchEvent(new Event("mass-state-updated"));
     } catch (err) {
       alerts.alert(err.message, "Error al anotarse", "error");

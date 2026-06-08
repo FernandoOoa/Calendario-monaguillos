@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { db, dev } from "../services/firebase";
 import { alerts } from "../services/alerts";
-import { formatTimeToAMPM } from "../utils/time";
+import { formatTimeToAMPM, getLocalDateString } from "../utils/time";
 
 export default function Home({ user, onSelectMass }) {
   const [nextMassData, setNextMassData] = useState(null); // { mass, dateStr, massStart }
@@ -26,7 +26,7 @@ export default function Home({ user, onSelectMass }) {
       for (let i = 0; i < 7; i++) {
         const tempDate = new Date(now);
         tempDate.setDate(now.getDate() + i);
-        const dateStr = tempDate.toISOString().split("T")[0];
+        const dateStr = getLocalDateString(tempDate);
         const dayOfWeek = tempDate.getDay();
         
         const dayMasses = await db.getMassesForDay(dayOfWeek, dateStr);
@@ -139,7 +139,7 @@ export default function Home({ user, onSelectMass }) {
     if (!nextMassData || user.role !== "monaguillo") return;
     setActionLoading(true);
     try {
-      await db.registerForMass(nextMassData.mass.id, user, selectedRole);
+      await db.registerForMass(nextMassData.mass.id, user, selectedRole, nextMassData.dateStr);
       window.dispatchEvent(new Event("mass-state-updated"));
       alerts.alert("¡Te has anotado con éxito para la misa!", "Inscripción Exitosa", "success");
     } catch (err) {
