@@ -70,7 +70,8 @@ export default function Auth({ onAuthSuccess }) {
           level: 4,
           servedCount: 42,
           punctuality: 98,
-          activeRecurrence: true
+          activeRecurrence: true,
+          photoURL: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80"
         };
       } else if (accountType === "padre") {
         mockUser = users["parent-uid"] || {
@@ -79,7 +80,8 @@ export default function Auth({ onAuthSuccess }) {
           name: "Carlos",
           lastName: "Sánchez",
           role: "padre",
-          childEmails: ["monaguillo@joselito.com"]
+          childEmails: ["monaguillo@joselito.com"],
+          photoURL: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&h=150&q=80"
         };
       } else if (accountType === "admin") {
         mockUser = users["admin-uid"] || {
@@ -90,7 +92,8 @@ export default function Auth({ onAuthSuccess }) {
           role: "admin",
           level: 5,
           servedCount: 150,
-          punctuality: 100
+          punctuality: 100,
+          photoURL: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&h=150&q=80"
         };
       } else {
         // "new-user": Create a fresh google sign-in profile

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { db, dev } from "../services/firebase";
 import { alerts } from "../services/alerts";
+import { formatTimeToAMPM } from "../utils/time";
 
 export default function Admin({ user }) {
   const [activeTab, setActiveTab] = useState("create"); // 'create', 'manage', 'attendance', 'emails'
@@ -62,13 +63,21 @@ export default function Admin({ user }) {
     setInspectDate(todayStr);
 
     const handleUpdate = () => loadAdminData();
+    const handleTimeChange = () => {
+      const newTodayStr = dev.getSimulatedTime().toISOString().split("T")[0];
+      setInspectDate(newTodayStr);
+      loadAdminData();
+    };
+
     window.addEventListener("mass-state-updated", handleUpdate);
     window.addEventListener("simulated-email-sent", handleUpdate);
     window.addEventListener("simulated-emails-cleared", handleUpdate);
+    window.addEventListener("simulated-time-changed", handleTimeChange);
     return () => {
       window.removeEventListener("mass-state-updated", handleUpdate);
       window.removeEventListener("simulated-email-sent", handleUpdate);
       window.removeEventListener("simulated-emails-cleared", handleUpdate);
+      window.removeEventListener("simulated-time-changed", handleTimeChange);
     };
   }, []);
 
@@ -371,7 +380,7 @@ export default function Admin({ user }) {
                       <td className="py-3.5 px-2 font-semibold">
                         {daysOfWeekNames.find(d => d.value === mass.dayOfWeek)?.label}
                       </td>
-                      <td className="py-3.5 px-2 font-bold text-primary">{mass.time}</td>
+                      <td className="py-3.5 px-2 font-bold text-primary">{formatTimeToAMPM(mass.time)}</td>
                       <td className="py-3.5 px-2">
                         <span className={`px-2 py-0.5 rounded font-bold text-[9px] ${
                           mass.isRecurring ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"

@@ -51,11 +51,13 @@ export default function Profile({ user, onUpdateUser }) {
     window.addEventListener("notifications-updated", handleUpdate);
     window.addEventListener("simulated-email-sent", handleUpdate);
     window.addEventListener("mass-state-updated", handleUpdate);
+    window.addEventListener("simulated-time-changed", handleUpdate);
     
     return () => {
       window.removeEventListener("notifications-updated", handleUpdate);
       window.removeEventListener("simulated-email-sent", handleUpdate);
       window.removeEventListener("mass-state-updated", handleUpdate);
+      window.removeEventListener("simulated-time-changed", handleUpdate);
     };
   }, [user]);
 

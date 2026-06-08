@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { db, dev } from "../services/firebase";
 import { alerts } from "../services/alerts";
+import { formatTimeToAMPM } from "../utils/time";
 
 export default function MassDetailModal({ mass, dateStr, user, onClose }) {
   const [registrations, setRegistrations] = useState([]);
@@ -145,7 +146,7 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
               {mass.type}
             </span>
             <h1 className="text-xl md:text-2xl font-bold text-primary mt-1">
-              {mass.title} — {mass.time}
+              {mass.title} — {formatTimeToAMPM(mass.time)}
             </h1>
           </div>
         </div>

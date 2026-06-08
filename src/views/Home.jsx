@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { db, dev } from "../services/firebase";
 import { alerts } from "../services/alerts";
+import { formatTimeToAMPM } from "../utils/time";
 
 export default function Home({ user, onSelectMass }) {
   const [nextMassData, setNextMassData] = useState(null); // { mass, dateStr, massStart }
@@ -108,23 +109,28 @@ export default function Home({ user, onSelectMass }) {
         return;
       }
       
+      const seconds = Math.floor((diffMs % 60000) / 1000);
       const diffMinsTotal = Math.floor(diffMs / 60000);
       const mins = diffMinsTotal % 60;
       const hoursTotal = Math.floor(diffMinsTotal / 60);
       const hours = hoursTotal % 24;
       const days = Math.floor(hoursTotal / 24);
       
+      let text = "Faltan: ";
       if (days > 0) {
-        setCountdownText(`Empieza en ${days} ${days === 1 ? "día" : "días"} y ${hours} ${hours === 1 ? "hora" : "horas"}`);
+        text += `${days} ${days === 1 ? "día" : "días"}, ${hours}h ${mins}m y ${seconds}s`;
       } else if (hours > 0) {
-        setCountdownText(`Empieza en ${hours} ${hours === 1 ? "hora" : "horas"} y ${mins} ${mins === 1 ? "minuto" : "minutos"}`);
+        text += `${hours}h ${mins}m y ${seconds}s`;
+      } else if (mins > 0) {
+        text += `${mins} min(s) y ${seconds}s`;
       } else {
-        setCountdownText(`Empieza en ${mins} ${mins === 1 ? "minuto" : "minutos"}`);
+        text += `${seconds} seg(s)`;
       }
+      setCountdownText(text);
     };
 
     updateCountdown();
-    const interval = setInterval(updateCountdown, 10000); // update every 10s
+    const interval = setInterval(updateCountdown, 1000); // update every 1s (second precision)
     return () => clearInterval(interval);
   }, [nextMassData]);
 
@@ -256,7 +262,7 @@ export default function Home({ user, onSelectMass }) {
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-lg">schedule</span>
-                {mass.time} hs
+                {formatTimeToAMPM(mass.time)}
               </span>
             </div>
           </div>

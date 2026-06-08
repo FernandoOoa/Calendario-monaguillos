@@ -6,6 +6,30 @@ export default function DevPanel() {
   const [simTime, setSimTime] = useState("");
   const [emailLogs, setEmailLogs] = useState([]);
   const [realFirebase, setRealFirebase] = useState(false);
+  const [currentFormattedTime, setCurrentFormattedTime] = useState({ text: "", isShifted: false });
+  const [successMsg, setSuccessMsg] = useState("");
+
+  const updateFormattedTime = () => {
+    const cTime = dev.getSimulatedTime();
+    const isShifted = localStorage.getItem("joselito_simulated_time") !== null;
+    
+    const days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    
+    const dayName = days[cTime.getDay()];
+    const dateNum = cTime.getDate();
+    const monthName = months[cTime.getMonth()];
+    
+    let hour = cTime.getHours();
+    const ampm = hour >= 12 ? "PM" : "AM";
+    hour = hour % 12;
+    hour = hour ? hour : 12; // 0 to 12
+    const min = cTime.getMinutes().toString().padStart(2, "0");
+    const sec = cTime.getSeconds().toString().padStart(2, "0");
+    
+    const formatted = `${dayName} ${dateNum} de ${monthName}, ${hour}:${min}:${sec} ${ampm}`;
+    setCurrentFormattedTime({ text: formatted, isShifted });
+  };
 
   useEffect(() => {
     const updateLogs = () => {
@@ -20,11 +44,15 @@ export default function DevPanel() {
     const localISOTime = new Date(currentTime.getTime() - tzOffset).toISOString().slice(0, 16);
     setSimTime(localISOTime);
 
+    updateFormattedTime();
+    const timer = setInterval(updateFormattedTime, 1000);
+
     const handleEmail = () => updateLogs();
     const handleTime = () => {
       const cTime = dev.getSimulatedTime();
       const offset = cTime.getTimezoneOffset() * 60000;
       setSimTime(new Date(cTime.getTime() - offset).toISOString().slice(0, 16));
+      updateFormattedTime();
     };
 
     window.addEventListener("simulated-email-sent", handleEmail);
@@ -32,6 +60,7 @@ export default function DevPanel() {
     window.addEventListener("simulated-time-changed", handleTime);
 
     return () => {
+      clearInterval(timer);
       window.removeEventListener("simulated-email-sent", handleEmail);
       window.removeEventListener("simulated-emails-cleared", handleEmail);
       window.removeEventListener("simulated-time-changed", handleTime);
@@ -43,13 +72,20 @@ export default function DevPanel() {
     setSimTime(val);
     if (val) {
       dev.setSimulatedTime(new Date(val).toISOString());
+      setSuccessMsg("¡Hora simulada establecida!");
     } else {
       dev.setSimulatedTime(null);
+      setSuccessMsg("¡Hora restablecida a la hora real!");
     }
+    updateFormattedTime();
+    setTimeout(() => setSuccessMsg(""), 3000);
   };
 
   const handleResetTime = () => {
     dev.setSimulatedTime(null);
+    setSuccessMsg("¡Hora del sistema restablecida a la hora real!");
+    updateFormattedTime();
+    setTimeout(() => setSuccessMsg(""), 3000);
   };
 
   const handleResetDb = async () => {
@@ -109,11 +145,36 @@ export default function DevPanel() {
         </div>
 
         {/* Time Simulation */}
-        <div className="bg-surface-container-low rounded-2xl p-4 border border-outline-variant/30">
-          <h4 className="font-bold text-on-surface mb-2 flex items-center gap-1.5 text-xs">
+        <div className="bg-surface-container-low rounded-2xl p-4 border border-outline-variant/30 space-y-3">
+          <h4 className="font-bold text-on-surface flex items-center gap-1.5 text-xs">
             <span className="material-symbols-outlined text-[16px] text-secondary">schedule</span>
             Simulador de Tiempo (Time Travel)
           </h4>
+
+          {/* Current Active Time Display */}
+          <div className="p-3 bg-white rounded-xl border border-outline-variant/60 space-y-1">
+            <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider block">Hora actual del sistema:</span>
+            <div className="flex items-center gap-1.5">
+              <span className={`w-2 h-2 rounded-full ${currentFormattedTime.isShifted ? "bg-orange-500 animate-pulse" : "bg-green-600"}`} />
+              <span className="font-bold text-xs text-on-surface">
+                {currentFormattedTime.text || "Cargando..."}
+              </span>
+            </div>
+            <span className="text-[9px] text-on-surface-variant/70 italic block">
+              {currentFormattedTime.isShifted 
+                ? "⚠️ Tiempo congelado en la hora simulada." 
+                : "🟢 Corriendo en tiempo real."}
+            </span>
+          </div>
+
+          {/* Confirmation Message */}
+          {successMsg && (
+            <div className="p-2.5 bg-green-100 border border-green-200 rounded-xl text-[10px] text-green-800 font-bold flex items-center gap-1.5 animate-in fade-in duration-200">
+              <span className="material-symbols-outlined text-sm">check_circle</span>
+              {successMsg}
+            </div>
+          )}
+
           <div className="space-y-3">
             <input
               type="datetime-local"
@@ -129,9 +190,6 @@ export default function DevPanel() {
                 Restablecer Hora Real
               </button>
             </div>
-            <p className="text-[10px] text-on-surface-variant/70 italic leading-relaxed">
-              * Modifica la hora del sistema para probar si la ventana de Check-in (±1 hora de la misa) se activa correctamente en la tarjeta de detalles.
-            </p>
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { db, dev } from "../services/firebase";
 import { alerts } from "../services/alerts";
+import { formatTimeToAMPM } from "../utils/time";
 
 export default function Dashboard({ user, onSelectMass }) {
   const [weekDays, setWeekDays] = useState([]);
@@ -199,7 +200,7 @@ export default function Dashboard({ user, onSelectMass }) {
                 {/* Card Header */}
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex flex-col">
-                    <span className="text-primary font-bold text-xl">{mass.time}</span>
+                    <span className="text-primary font-bold text-xl">{formatTimeToAMPM(mass.time)}</span>
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold w-fit mt-1 tracking-wider ${
                       mass.type === "SOLEMNE"
                         ? "bg-primary/10 text-primary"
