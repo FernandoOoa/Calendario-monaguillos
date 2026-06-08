@@ -2,9 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Forced Dark Theme Overrides to guarantee legibility and dark background */
+html,
+body,
+#root,
+.bg-background,
+.min-h-screen {
+  background-color: #0c0c0c !important;
+  color: #ffffff !important;
+}
+
+/* Ensure text colors are high contrast */
+.text-on-surface {
+  color: #ffffff !important;
+}
+
+.text-on-surface-variant {
+  color: #a3a3a3 !important;
+}
+
+.text-white {
+  color: #ffffff !important;
+}
+
+.text-gray-200 {
+  color: #e2e8f0 !important;
+}
+
+.text-gray-300 {
+  color: #cbd5e1 !important;
+}
+
+.text-gray-400 {
+  color: #94a3b8 !important;
+}
+
+.text-secondary {
+  color: #d4af37 !important; /* Gold */
+}
+
+/* Force dark card and container backgrounds */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+.bg-surface-container {
+  background-color: #1c1c1c !important;
+}
+
+.bg-surface-container-low {
+  background-color: #161616 !important;
+}
+
+.bg-surface-container-high {
+  background-color: #222222 !important;
+}
+
+.bg-surface-dim {
+  background-color: #121212 !important;
+}
+
+.bg-surface-bright {
+  background-color: #1a1a1a !important;
+}
+
+.border-outline {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.border-outline-variant {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
 @layer base {
-  body {
-    @apply bg-background text-on-surface font-sans antialiased overflow-x-hidden;
+  html, body {
+    @apply font-sans antialiased overflow-x-hidden;
   }
 }
 
@@ -28,10 +103,41 @@
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
+
+/* Ambient Glow Utilities */
+.bg-glow-primary {
+  background: radial-gradient(circle, rgba(184, 32, 20, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+}
+
+.bg-glow-secondary {
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+}
+
+/* Pulse Animation */
+@keyframes float-pulse {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(10px, -15px) scale(1.05);
+    opacity: 1;
+  }
+}
+
+.animate-float-slow {
+  animation: float-pulse 8s ease-in-out infinite;
+}
+
+.animate-float-slower {
+  animation: float-pulse 12s ease-in-out infinite;
+}
+
 
 /* No scrollbar utilities */
 .no-scrollbar::-webkit-scrollbar {

@@ -44,9 +44,9 @@ export default function CustomAlertModal() {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-on-surface/40 modal-blur animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 modal-blur animate-in fade-in duration-200">
       {/* Container */}
-      <div className="w-full max-w-sm bg-white rounded-[28px] border border-outline-variant/40 card-shadow p-6 flex flex-col gap-4 text-center font-sans animate-in zoom-in-95 duration-200">
+      <div className="w-full max-w-sm bg-[#1c1c1c] rounded-[28px] border border-white/10 card-shadow p-6 flex flex-col gap-4 text-center font-sans animate-in zoom-in-95 duration-200 text-white">
         {/* Header Icon */}
         <div className="flex justify-center">
           <div className={`w-14 h-14 rounded-full bg-surface-container flex items-center justify-center ${iconColor}`}>

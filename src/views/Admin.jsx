@@ -201,35 +201,35 @@ export default function Admin({ user }) {
       </section>
 
       {/* Admin Tab Switching */}
-      <div className="flex overflow-x-auto no-scrollbar gap-2 mb-6 bg-surface-container rounded-2xl p-1">
+      <div className="flex overflow-x-auto no-scrollbar gap-2 mb-6 bg-white/5 border border-white/10 rounded-2xl p-1">
         <button
           onClick={() => { setActiveTab("create"); setSuccessMsg(""); setErrorMsg(""); }}
-          className={`flex-1 min-w-[100px] py-2 text-center text-xs font-bold rounded-xl transition-all ${
-            activeTab === "create" ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-primary"
+          className={`flex-1 min-w-[100px] py-2.5 text-center text-xs font-bold rounded-xl transition-all ${
+            activeTab === "create" ? "bg-primary text-white shadow" : "text-on-surface-variant hover:text-white"
           }`}
         >
           Crear Misa
         </button>
         <button
           onClick={() => { setActiveTab("manage"); setSuccessMsg(""); setErrorMsg(""); }}
-          className={`flex-1 min-w-[100px] py-2 text-center text-xs font-bold rounded-xl transition-all ${
-            activeTab === "manage" ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-primary"
+          className={`flex-1 min-w-[100px] py-2.5 text-center text-xs font-bold rounded-xl transition-all ${
+            activeTab === "manage" ? "bg-primary text-white shadow" : "text-on-surface-variant hover:text-white"
           }`}
         >
           Gestionar Registro
         </button>
         <button
           onClick={() => { setActiveTab("attendance"); setSuccessMsg(""); setErrorMsg(""); }}
-          className={`flex-1 min-w-[100px] py-2 text-center text-xs font-bold rounded-xl transition-all ${
-            activeTab === "attendance" ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-primary"
+          className={`flex-1 min-w-[100px] py-2.5 text-center text-xs font-bold rounded-xl transition-all ${
+            activeTab === "attendance" ? "bg-primary text-white shadow" : "text-on-surface-variant hover:text-white"
           }`}
         >
           Hojas de Asistencia
         </button>
         <button
           onClick={() => { setActiveTab("emails"); setSuccessMsg(""); setErrorMsg(""); }}
-          className={`flex-1 min-w-[100px] py-2 text-center text-xs font-bold rounded-xl transition-all ${
-            activeTab === "emails" ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-primary"
+          className={`flex-1 min-w-[100px] py-2.5 text-center text-xs font-bold rounded-xl transition-all ${
+            activeTab === "emails" ? "bg-primary text-white shadow" : "text-on-surface-variant hover:text-white"
           }`}
         >
           Correos Enviados
@@ -238,7 +238,7 @@ export default function Admin({ user }) {
 
       {/* Success / Error Message alerts */}
       {successMsg && (
-        <div className="mb-6 p-4 bg-green-100 text-green-800 rounded-2xl border border-green-200 flex gap-2 items-center text-xs font-bold animate-in fade-in duration-300">
+        <div className="mb-6 p-4 bg-green-500/10 text-green-400 rounded-2xl border border-green-500/20 flex gap-2 items-center text-xs font-bold animate-in fade-in duration-300">
           <span className="material-symbols-outlined text-[18px]">check_circle</span>
           {successMsg}
         </div>
@@ -252,7 +252,7 @@ export default function Admin({ user }) {
 
       {/* TAB: Create Mass Form */}
       {activeTab === "create" && (
-        <div className="bg-white p-6 md:p-8 rounded-3xl border border-outline-variant/40 card-shadow max-w-xl mx-auto">
+        <div className="glass-card p-6 md:p-8 rounded-3xl border border-white/10 shadow-lg max-w-xl mx-auto">
           <h2 className="text-base font-bold text-on-surface mb-6 flex items-center gap-1.5">
             <span className="material-symbols-outlined text-primary">add_box</span>
             Crear Misa o Evento Parroquial
@@ -268,7 +268,7 @@ export default function Admin({ user }) {
                   placeholder="ej. Misa Dominical Familiar"
                   value={massTitle}
                   onChange={(e) => setMassTitle(e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
+                  className="w-full h-11 px-4 rounded-xl bg-white/5 border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs placeholder:text-on-surface-variant/40"
                 />
               </div>
 
@@ -279,7 +279,7 @@ export default function Admin({ user }) {
                   type="time"
                   value={massTime}
                   onChange={(e) => setMassTime(e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
+                  className="w-full h-11 px-4 rounded-xl bg-white/5 border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
                 />
               </div>
             </div>
@@ -290,10 +290,10 @@ export default function Admin({ user }) {
                 <select
                   value={massDayOfWeek}
                   onChange={(e) => setMassDayOfWeek(Number(e.target.value))}
-                  className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs bg-white"
+                  className="w-full h-11 px-4 rounded-xl bg-[#1e1e1e] border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
                 >
                   {daysOfWeekNames.map(d => (
-                    <option key={d.value} value={d.value}>{d.label}</option>
+                    <option key={d.value} value={d.value} className="bg-[#1e1e1e]">{d.label}</option>
                   ))}
                 </select>
               </div>
@@ -303,10 +303,10 @@ export default function Admin({ user }) {
                 <select
                   value={massType}
                   onChange={(e) => setMassType(e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs bg-white"
+                  className="w-full h-11 px-4 rounded-xl bg-[#1e1e1e] border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
                 >
                   {massTypesList.map(t => (
-                    <option key={t} value={t}>{t}</option>
+                    <option key={t} value={t} className="bg-[#1e1e1e]">{t}</option>
                   ))}
                 </select>
               </div>
@@ -319,7 +319,7 @@ export default function Admin({ user }) {
                 placeholder="ej. Se requiere incienso, turiferario y crucífero. Túnicas limpias."
                 value={massNotes}
                 onChange={(e) => setMassNotes(e.target.value)}
-                className="w-full p-4 rounded-xl border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs leading-relaxed"
+                className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs leading-relaxed placeholder:text-on-surface-variant/40"
               />
             </div>
 
@@ -329,16 +329,16 @@ export default function Admin({ user }) {
                 id="isRecurring"
                 checked={massIsRecurring}
                 onChange={(e) => setMassIsRecurring(e.target.checked)}
-                className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary"
+                className="w-4 h-4 rounded border-white/10 bg-white/5 text-primary focus:ring-primary"
               />
-              <label htmlFor="isRecurring" className="text-xs text-on-surface cursor-pointer select-none">
+              <label htmlFor="isRecurring" className="text-xs text-on-surface-variant cursor-pointer select-none">
                 Programar automáticamente todas las semanas (Misa Recurrente)
               </label>
             </div>
 
             <button
               type="submit"
-              className="w-full h-12 bg-primary hover:bg-primary-container text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center"
+              className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center"
             >
               Registrar en Calendario
             </button>
@@ -348,7 +348,7 @@ export default function Admin({ user }) {
 
       {/* TAB: Manage Masses List */}
       {activeTab === "manage" && (
-        <div className="bg-white p-6 rounded-3xl border border-outline-variant/40 card-shadow">
+        <div className="glass-card p-6 rounded-3xl border border-white/10 shadow-lg">
           <h2 className="text-base font-bold text-on-surface mb-6 flex items-center gap-1.5">
             <span className="material-symbols-outlined text-primary">view_list</span>
             Misas Programadas Registradas
@@ -360,7 +360,7 @@ export default function Admin({ user }) {
             ) : (
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-outline-variant text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                  <tr className="border-b border-white/10 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                     <th className="py-3 px-2">Celebración / Tipo</th>
                     <th className="py-3 px-2">Día de Semana</th>
                     <th className="py-3 px-2">Hora</th>
@@ -368,12 +368,12 @@ export default function Admin({ user }) {
                     <th className="py-3 px-2 text-right">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-outline-variant/50">
+                <tbody className="divide-y divide-white/5">
                   {massesList.map((mass) => (
-                    <tr key={mass.id} className="hover:bg-surface-container/30 transition-colors">
+                    <tr key={mass.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="py-3.5 px-2">
                         <p className="font-bold text-on-surface">{mass.title}</p>
-                        <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded font-bold uppercase">
+                        <span className="text-[9px] bg-primary/20 text-primary border border-primary/10 px-2 py-0.5 rounded font-bold uppercase">
                           {mass.type}
                         </span>
                       </td>
@@ -383,7 +383,9 @@ export default function Admin({ user }) {
                       <td className="py-3.5 px-2 font-bold text-primary">{formatTimeToAMPM(mass.time)}</td>
                       <td className="py-3.5 px-2">
                         <span className={`px-2 py-0.5 rounded font-bold text-[9px] ${
-                          mass.isRecurring ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                          mass.isRecurring 
+                            ? "bg-green-500/10 text-green-400 border border-green-500/20" 
+                            : "bg-orange-500/10 text-orange-400 border border-orange-500/20"
                         }`}>
                           {mass.isRecurring ? "SEMANAL" : "ÚNICA"}
                         </span>
@@ -408,37 +410,37 @@ export default function Admin({ user }) {
 
       {/* TAB: Attendance Sheet Inspector */}
       {activeTab === "attendance" && (
-        <div className="bg-white p-6 rounded-3xl border border-outline-variant/40 card-shadow space-y-6">
+        <div className="glass-card p-6 rounded-3xl border border-white/10 shadow-lg space-y-6">
           <h2 className="text-base font-bold text-on-surface flex items-center gap-1.5">
             <span className="material-symbols-outlined text-primary">playlist_add_check</span>
             Control de Asistencia del Servidor (Real-time)
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-surface-container p-4 rounded-2xl border border-outline-variant/30 text-xs font-bold">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-2xl text-xs font-bold">
             <div>
               <label className="block text-on-surface-variant mb-1 ml-1">Selecciona una Fecha:</label>
               <input
                 type="date"
                 value={inspectDate}
                 onChange={(e) => setInspectDate(e.target.value)}
-                className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none"
+                className="w-full h-11 px-4 rounded-xl bg-white/5 border border-white/10 text-on-surface focus:border-primary outline-none"
               />
             </div>
             
             <div>
               <label className="block text-on-surface-variant mb-1 ml-1">Selecciona la Misa de ese día:</label>
               {inspectMasses.length === 0 ? (
-                <div className="h-11 px-4 rounded-xl border border-outline-variant flex items-center bg-white text-on-surface-variant/70 italic">
+                <div className="h-11 px-4 rounded-xl border border-white/10 flex items-center bg-white/5 text-on-surface-variant italic">
                   No hay misas en este día.
                 </div>
               ) : (
                 <select
                   value={selectedInspectMassId}
                   onChange={(e) => setSelectedInspectMassId(e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none bg-white"
+                  className="w-full h-11 px-4 rounded-xl bg-[#1e1e1e] border border-white/10 text-on-surface focus:border-primary outline-none"
                 >
                   {inspectMasses.map(m => (
-                    <option key={m.id} value={m.id}>{m.time} — {m.title} ({m.type})</option>
+                    <option key={m.id} value={m.id} className="bg-[#1e1e1e]">{m.time} — {m.title} ({m.type})</option>
                   ))}
                 </select>
               )}
@@ -456,34 +458,34 @@ export default function Admin({ user }) {
             </h3>
 
             {!selectedInspectMassId ? (
-              <div className="text-center py-12 text-xs text-on-surface-variant/70 border border-dashed border-outline-variant rounded-2xl bg-surface-container-low">
+              <div className="text-center py-12 text-xs text-on-surface-variant/70 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
                 Selecciona una fecha y una misa para ver su hoja de asistencia.
               </div>
             ) : attendanceList.length === 0 ? (
-              <div className="text-center py-12 text-xs text-on-surface-variant/70 border border-dashed border-outline-variant rounded-2xl bg-surface-container-low">
+              <div className="text-center py-12 text-xs text-on-surface-variant/70 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
                 No hay monaguillos registrados para esta misa en la fecha seleccionada.
               </div>
             ) : (
               <div className="overflow-x-auto no-scrollbar">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-b border-outline-variant text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                    <tr className="border-b border-white/10 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                       <th className="py-2.5">Monaguillo</th>
                       <th className="py-2.5">Rol de Misa</th>
                       <th className="py-2.5">Estado Asistencia</th>
                       <th className="py-2.5 text-right">Acción Manual</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-outline-variant/40">
+                  <tbody className="divide-y divide-white/5">
                     {attendanceList.map((reg) => (
-                      <tr key={reg.id} className="hover:bg-surface-container/20 transition-colors">
+                      <tr key={reg.id} className="hover:bg-white/[0.02] transition-colors">
                         <td className="py-3 font-bold text-on-surface">{reg.userName}</td>
                         <td className="py-3 font-semibold text-on-surface-variant">{reg.userRole}</td>
                         <td className="py-3">
                           <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider ${
-                            reg.status === "attended" ? "bg-green-100 text-green-700" :
-                            reg.status === "checked-in" ? "bg-secondary-container text-on-secondary-container" :
-                            reg.status === "cancelled" ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"
+                            reg.status === "attended" ? "bg-green-500/10 text-green-400 border border-green-500/20" :
+                            reg.status === "checked-in" ? "bg-secondary/20 text-secondary border border-secondary/10" :
+                            reg.status === "cancelled" ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-orange-500/10 text-orange-400 border border-orange-500/20"
                           }`}>
                             {reg.status === "attended" ? "COMPLETADO" :
                              reg.status === "checked-in" ? "VERIFICADO (EN SITIO)" :
@@ -493,7 +495,7 @@ export default function Admin({ user }) {
                         <td className="py-3 text-right">
                           <button
                             onClick={() => handleToggleAttendanceStatus(reg)}
-                            className="bg-surface-container hover:bg-surface-container-high border border-outline-variant/60 text-on-surface px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                            className="bg-white/5 hover:bg-white/10 border border-white/10 text-on-surface px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all"
                           >
                             Rotar Estado
                           </button>
@@ -510,7 +512,7 @@ export default function Admin({ user }) {
 
       {/* TAB: Automated Email Logs */}
       {activeTab === "emails" && (
-        <div className="bg-white p-6 rounded-3xl border border-outline-variant/40 card-shadow">
+        <div className="glass-card p-6 rounded-3xl border border-white/10 shadow-lg">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-base font-bold text-on-surface flex items-center gap-1.5">
               <span className="material-symbols-outlined text-primary">mail</span>
@@ -527,20 +529,20 @@ export default function Admin({ user }) {
           </div>
 
           {emailLogs.length === 0 ? (
-            <div className="text-center py-12 text-xs text-on-surface-variant/70 border border-dashed border-outline-variant rounded-2xl bg-surface-container-low">
+            <div className="text-center py-12 text-xs text-on-surface-variant/70 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
               No se han gatillado notificaciones por correo electrónico todavía.
             </div>
           ) : (
             <div className="space-y-4">
               {emailLogs.map((log) => (
-                <div key={log.id} className="p-4 bg-surface-container-low rounded-2xl border border-outline-variant/50 flex flex-col gap-2">
-                  <div className="flex flex-col sm:flex-row justify-between text-xs text-on-surface-variant border-b border-outline-variant/30 pb-2">
+                <div key={log.id} className="p-4 bg-white/[0.02] border border-white/10 rounded-2xl flex flex-col gap-2">
+                  <div className="flex flex-col sm:flex-row justify-between text-xs text-on-surface-variant border-b border-white/5 pb-2">
                     <span className="font-bold">Para: <span className="text-primary font-semibold">{log.to}</span></span>
                     <span className="text-[10px]">{new Date(log.timestamp).toLocaleString()}</span>
                   </div>
                   <div className="font-bold text-sm text-on-surface">{log.subject}</div>
                   <div 
-                    className="text-xs text-on-surface-variant bg-white p-3 rounded-xl border border-outline-variant/30 font-sans" 
+                    className="text-xs text-on-surface-variant/90 bg-black/40 p-3 rounded-xl border border-white/5 font-sans leading-relaxed" 
                     dangerouslySetInnerHTML={{ __html: log.bodyHtml }} 
                   />
                 </div>

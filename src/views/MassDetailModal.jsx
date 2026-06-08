@@ -119,73 +119,73 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
   const stepServido = isUserCheckedIn && isMassFinished;
 
   return (
-    <div className="fixed inset-0 z-50 bg-on-surface/40 modal-blur flex items-center justify-center p-4 md:p-8 font-sans">
+    <div className="fixed inset-0 z-50 bg-black/75 modal-blur flex items-center justify-center p-4 md:p-8 font-sans">
       {/* Modal Container */}
-      <main className="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <main className="relative w-full max-w-2xl bg-[#121212] border border-white/15 rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] glass-card">
         
         {/* Banner Image / Header */}
-        <div className="relative h-40 md:h-52 flex-shrink-0">
+        <div className="relative h-44 md:h-56 flex-shrink-0">
           <img
             className="w-full h-full object-cover"
             alt="Interior de iglesia"
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuC67G4S0X1oDYsuCT50k6NYeLjbZImRiyXakxsO7fEslduQBkLTzDB8rQkd4oIU_NbRCceIsxcctphIWjRmDHuoLb5SZwfGBxazLmYcTkVtliWF8DjDUY50tRbKZX7zITvUlDZ3g3r71XD2fcMFrLRFHds9ivcWYuxJQCRtaCFsxTDQyGZTvzr6SEtT_pdyO7IIux-UVxtqGo15fujuoDVMGuZnqQGxXeoW2ZlzHJrE-TVt7-mUwckcmwfWQaNSp5lZufq3ZVjk3yw"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/50 to-transparent"></div>
           
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-all active:scale-95 flex items-center justify-center"
+            className="absolute top-4 right-4 bg-black/70 hover:bg-black/90 text-white p-2.5 rounded-full transition-all active:scale-95 flex items-center justify-center border border-white/10"
           >
-            <span className="material-symbols-outlined text-[20px]">close</span>
+            <span className="material-symbols-outlined text-[22px]">close</span>
           </button>
 
           {/* Title and Badge */}
-          <div className="absolute bottom-4 left-6">
-            <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full font-bold text-[10px] tracking-wider uppercase">
+          <div className="absolute bottom-4 left-6 right-6">
+            <span className="bg-secondary text-black px-3 py-1 rounded-full font-extrabold text-xs tracking-wider uppercase shadow-md">
               {mass.type}
             </span>
-            <h1 className="text-xl md:text-2xl font-bold text-primary mt-1">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-white mt-2 drop-shadow-md">
               {mass.title} — {formatTimeToAMPM(mass.time)}
             </h1>
           </div>
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 no-scrollbar">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6 no-scrollbar">
           
           {/* Notes */}
           {mass.notes && (
-            <div className="bg-surface-container/50 border border-outline-variant/30 p-4 rounded-2xl text-xs text-on-surface-variant leading-relaxed">
-              <span className="font-bold text-on-surface block mb-1">Notas Litúrgicas:</span>
-              {mass.notes}
+            <div className="bg-white/5 border border-white/10 p-5 rounded-2xl">
+              <span className="font-bold text-secondary text-sm block mb-1.5">Notas Litúrgicas:</span>
+              <p className="text-sm text-gray-200 leading-relaxed">{mass.notes}</p>
             </div>
           )}
 
           {/* Notification Alert Banner */}
-          <section className="bg-primary-fixed/20 text-on-primary-fixed p-4 rounded-2xl flex items-start gap-3 border border-outline-variant/30">
-            <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>info</span>
+          <section className="bg-primary/20 text-white p-5 rounded-2xl flex items-start gap-3.5 border border-primary/30">
+            <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>info</span>
             <div>
-              <p className="text-[10px] font-bold tracking-wider mb-1 uppercase">REGLA DE ASISTENCIA Y CHECK-IN</p>
-              <p className="text-xs leading-relaxed text-on-surface-variant">
+              <p className="text-xs font-bold text-secondary tracking-wider mb-1 uppercase">REGLA DE ASISTENCIA Y CHECK-IN</p>
+              <p className="text-sm leading-relaxed text-gray-200">
                 El check-in se activa 60 minutos antes de la misa y cierra 60 minutos después. 
-                <span className="font-bold text-primary block mt-1">{checkInStatusText}</span>
+                <span className="font-bold text-amber-400 block mt-1.5 text-sm">{checkInStatusText}</span>
               </p>
             </div>
           </section>
 
           {/* Registered Altar Servers */}
           <section>
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-sm font-bold text-on-surface">Servidores Asignados</h2>
-              <span className="text-[10px] font-bold bg-surface-container-high px-2 py-0.5 rounded-full text-on-surface-variant">
+            <div className="flex justify-between items-center mb-3.5">
+              <h2 className="text-base font-bold text-white">Servidores Asignados</h2>
+              <span className="text-xs font-bold bg-white/10 border border-white/10 px-2.5 py-1 rounded-full text-white">
                 {registrations.length} Acólito(s)
               </span>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {registrations.length === 0 ? (
-                <div className="sm:col-span-2 text-center py-6 text-xs text-on-surface-variant/70 border border-dashed border-outline-variant rounded-2xl bg-surface-container-low">
+                <div className="sm:col-span-2 text-center py-8 text-sm text-gray-400 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
                   No hay monaguillos registrados para esta misa. ¡Sé el primero en anotarte!
                 </div>
               ) : (
@@ -196,10 +196,10 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
                   return (
                     <div
                       key={reg.id}
-                      className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${
+                      className={`flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all ${
                         isCurrent
-                          ? "bg-primary-fixed/10 border-primary-fixed-dim"
-                          : "bg-white border-outline-variant/60 hover:shadow-sm"
+                          ? "bg-primary/20 border-primary/40 text-white shadow-md"
+                          : "bg-white/5 border-white/10 hover:bg-white/10 text-white"
                       }`}
                     >
                       <div className="relative">
@@ -208,31 +208,31 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
                             src={reg.userPhotoURL}
                             alt={`${reg.userName} avatar`}
                             referrerPolicy="no-referrer"
-                            className="w-10 h-10 rounded-full object-cover"
+                            className="w-11 h-11 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold uppercase">
+                          <div className="w-11 h-11 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-extrabold uppercase">
                             {reg.userName.charAt(0)}
                           </div>
                         )}
                         {isCurrent && (
-                          <div className="absolute -bottom-1 -right-1 bg-primary text-white text-[8px] rounded-full px-1 py-0.5 leading-none font-bold scale-90">
+                          <div className="absolute -bottom-1 -right-1 bg-primary text-white text-[9px] rounded-full px-1.5 py-0.5 leading-none font-bold scale-90">
                             TÚ
                           </div>
                         )}
                       </div>
                       
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-on-surface truncate">{reg.userName}</p>
-                        <p className="text-[10px] text-on-surface-variant">{reg.userRole}</p>
+                        <p className="text-sm font-bold text-white truncate">{reg.userName}</p>
+                        <p className="text-xs text-gray-300 font-medium">{reg.userRole}</p>
                       </div>
 
                       {isChecked ? (
-                        <span className="material-symbols-outlined text-green-600 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        <span className="material-symbols-outlined text-green-400 text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                           verified
                         </span>
                       ) : (
-                        <span className="material-symbols-outlined text-on-surface-variant/40 text-lg">
+                        <span className="material-symbols-outlined text-gray-400 text-xl">
                           schedule
                         </span>
                       )}
@@ -245,41 +245,41 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
 
           {/* Camino al Servicio Progress Tracker */}
           {user.role === "monaguillo" && isUserRegistered && (
-            <section className="bg-surface-container-lowest border border-outline-variant/50 p-4 rounded-2xl">
-              <h3 className="text-[10px] font-bold text-on-surface-variant tracking-wider uppercase mb-4">
+            <section className="bg-white/[0.01] border border-white/5 p-5 rounded-2xl">
+              <h3 className="text-xs font-bold text-secondary tracking-wider uppercase mb-4">
                 Mi Camino al Servicio
               </h3>
-              <div className="flex items-center justify-between px-2">
+              <div className="flex items-center justify-between px-3">
                 {/* Step 1: Inscrito */}
                 <div className="flex flex-col items-center gap-1.5">
-                  <span className={`material-symbols-outlined text-2xl transition-colors ${stepInscrito ? "text-secondary" : "text-outline-variant"}`} style={{ fontVariationSettings: stepInscrito ? "'FILL' 1" : "'FILL' 0" }}>
+                  <span className={`material-symbols-outlined text-2xl transition-colors ${stepInscrito ? "text-secondary" : "text-white/10"}`} style={{ fontVariationSettings: stepInscrito ? "'FILL' 1" : "'FILL' 0" }}>
                     footprint
                   </span>
-                  <span className={`text-[10px] font-bold ${stepInscrito ? "text-secondary" : "text-on-surface-variant"}`}>
+                  <span className={`text-xs font-bold ${stepInscrito ? "text-secondary" : "text-gray-400"}`}>
                     Inscrito
                   </span>
                 </div>
 
-                <div className={`h-[2px] flex-1 mx-3 mb-6 transition-colors ${stepEnSitio ? "bg-secondary" : "bg-outline-variant/50"}`} />
+                <div className={`h-[2px] flex-1 mx-3 mb-6 transition-colors ${stepEnSitio ? "bg-secondary" : "bg-white/10"}`} />
 
                 {/* Step 2: En Sitio */}
                 <div className="flex flex-col items-center gap-1.5">
-                  <span className={`material-symbols-outlined text-2xl transition-colors ${stepEnSitio ? "text-secondary" : "text-outline-variant"}`} style={{ fontVariationSettings: stepEnSitio ? "'FILL' 1" : "'FILL' 0" }}>
+                  <span className={`material-symbols-outlined text-2xl transition-colors ${stepEnSitio ? "text-secondary" : "text-white/10"}`} style={{ fontVariationSettings: stepEnSitio ? "'FILL' 1" : "'FILL' 0" }}>
                     footprint
                   </span>
-                  <span className={`text-[10px] font-bold ${stepEnSitio ? "text-secondary" : "text-on-surface-variant"}`}>
+                  <span className={`text-xs font-bold ${stepEnSitio ? "text-secondary" : "text-gray-400"}`}>
                     En Sitio
                   </span>
                 </div>
 
-                <div className={`h-[2px] flex-1 mx-3 mb-6 transition-colors ${stepServido ? "bg-secondary" : "bg-outline-variant/50"}`} />
+                <div className={`h-[2px] flex-1 mx-3 mb-6 transition-colors ${stepServido ? "bg-secondary" : "bg-white/10"}`} />
 
                 {/* Step 3: Servido */}
                 <div className="flex flex-col items-center gap-1.5">
-                  <span className={`material-symbols-outlined text-2xl transition-colors ${stepServido ? "text-secondary" : "text-outline-variant"}`} style={{ fontVariationSettings: stepServido ? "'FILL' 1" : "'FILL' 0" }}>
+                  <span className={`material-symbols-outlined text-2xl transition-colors ${stepServido ? "text-secondary" : "text-white/10"}`} style={{ fontVariationSettings: stepServido ? "'FILL' 1" : "'FILL' 0" }}>
                     footprint
                   </span>
-                  <span className={`text-[10px] font-bold ${stepServido ? "text-secondary" : "text-on-surface-variant"}`}>
+                  <span className={`text-xs font-bold ${stepServido ? "text-secondary" : "text-gray-400"}`}>
                     Servido
                   </span>
                 </div>
@@ -289,18 +289,18 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
 
           {/* Role selector if not registered */}
           {user.role === "monaguillo" && !isUserRegistered && (
-            <div className="bg-surface-container-low border border-outline-variant p-4 rounded-2xl flex flex-col gap-2">
-              <label className="text-xs font-bold text-on-surface-variant">Selecciona tu Rol Litúrgico:</label>
+            <div className="bg-white/5 border border-white/10 p-5 rounded-2xl flex flex-col gap-3">
+              <label className="text-sm font-bold text-secondary">Selecciona tu Rol Litúrgico:</label>
               <div className="grid grid-cols-3 gap-2">
                 {rolesList.map(r => (
                   <button
                     key={r}
                     type="button"
                     onClick={() => setSelectedRole(r)}
-                    className={`h-9 rounded-xl text-xs font-bold border transition-all ${
+                    className={`h-11 rounded-xl text-xs font-bold border transition-all ${
                       selectedRole === r
-                        ? "bg-primary text-white border-primary"
-                        : "bg-white border-outline-variant text-on-surface-variant hover:border-outline"
+                        ? "bg-primary text-white border-primary shadow"
+                        : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     {r}
@@ -313,7 +313,7 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
         </div>
 
         {/* Footer Actions */}
-        <footer className="p-6 bg-surface-container-low border-t border-outline-variant/30 flex flex-col gap-2 flex-shrink-0">
+        <footer className="p-6 bg-black/40 border-t border-white/10 flex flex-col gap-3 flex-shrink-0">
           {user.role === "monaguillo" && (
             <>
               {/* Check-in Button */}
@@ -321,12 +321,12 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
                 <button
                   onClick={handleCheckIn}
                   disabled={!isCheckInOpen || isUserCheckedIn || loading}
-                  className={`w-full font-bold text-xs py-3.5 rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
+                  className={`w-full font-extrabold text-sm py-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 ${
                     isUserCheckedIn
-                      ? "bg-green-600 text-white cursor-not-allowed"
+                      ? "bg-green-600 text-white cursor-not-allowed border border-green-400/20"
                       : isCheckInOpen
-                        ? "bg-secondary text-on-secondary hover:opacity-90"
-                        : "bg-surface-variant text-on-surface-variant opacity-60 cursor-not-allowed"
+                        ? "bg-secondary text-black hover:bg-secondary/90"
+                        : "bg-white/5 text-gray-500 cursor-not-allowed"
                   }`}
                 >
                   <span className="material-symbols-outlined text-lg">how_to_reg</span>
@@ -344,7 +344,7 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
                   <button
                     onClick={handleCancel}
                     disabled={loading}
-                    className="flex-1 border-2 border-primary text-primary font-bold py-3 rounded-xl hover:bg-primary-fixed/10 transition-colors text-xs active:scale-95"
+                    className="flex-1 border-2 border-primary text-primary font-bold py-3.5 rounded-xl hover:bg-primary/10 transition-colors text-sm active:scale-95"
                   >
                     CANCELAR TURNO
                   </button>
@@ -352,9 +352,9 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
                   <button
                     onClick={handleRegister}
                     disabled={loading}
-                    className="flex-1 bg-primary text-white font-bold py-3 rounded-xl hover:bg-primary-container transition-colors text-xs active:scale-95"
+                    className="flex-1 bg-primary text-white font-bold py-3.5 rounded-xl hover:bg-primary/90 transition-colors text-sm active:scale-95"
                   >
-                    ANOTARME
+                    ANOTARSE
                   </button>
                 )}
               </div>
@@ -364,7 +364,7 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
           {user.role !== "monaguillo" && (
             <button
               onClick={onClose}
-              className="w-full bg-primary text-white py-3 rounded-xl font-bold text-xs hover:bg-primary-container transition-colors"
+              className="w-full bg-primary text-white py-4 rounded-xl font-extrabold text-sm hover:bg-primary/90 transition-colors"
             >
               CERRAR
             </button>

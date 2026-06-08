@@ -233,9 +233,9 @@ export default function Home({ user, onSelectMass }) {
       </section>
 
       {/* Main Upcoming Mass Hero Card */}
-      <main className="bg-white rounded-[32px] border border-outline-variant/40 card-shadow overflow-hidden flex flex-col">
+      <main className="bg-white/5 border border-white/10 backdrop-blur-xl rounded-[32px] shadow-2xl overflow-hidden flex flex-col">
         {/* Banner with type/details */}
-        <div className="bg-primary p-6 md:p-8 text-white relative">
+        <div className="bg-gradient-to-r from-primary to-primary-container p-6 md:p-8 text-white relative">
           {/*church pattern overlay*/}
           <div className="absolute inset-0 opacity-10 flex items-center justify-end pr-10 overflow-hidden select-none pointer-events-none">
             <span className="material-symbols-outlined text-[160px]" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -273,29 +273,31 @@ export default function Home({ user, onSelectMass }) {
           
           {/* Notes description */}
           {mass.notes && (
-            <div className="bg-surface-container-low border border-outline-variant/30 p-4 rounded-2xl text-xs text-on-surface-variant leading-relaxed">
-              <span className="font-bold text-on-surface block mb-1">Notas Litúrgicas / Requisitos:</span>
-              {mass.notes}
+            <div className="bg-white/5 border border-white/10 p-5 rounded-2xl">
+              <span className="font-bold text-secondary text-sm block mb-1.5">Notas Litúrgicas / Requisitos:</span>
+              <p className="text-sm text-gray-200 leading-relaxed">{mass.notes}</p>
             </div>
           )}
 
           {/* Parent linked kids notifier */}
           {user.role === "padre" && (
-            <div className="bg-secondary-container/20 border border-outline-variant/30 p-4 rounded-2xl flex items-start gap-3">
-              <span className="material-symbols-outlined text-secondary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>group</span>
-              <div className="text-xs">
-                <span className="font-bold text-on-surface block mb-1">Monitoreo de Hijos:</span>
+            <div className="bg-white/5 border border-white/10 p-5 rounded-2xl flex items-start gap-3.5">
+              <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>group</span>
+              <div className="text-sm">
+                <span className="font-bold text-secondary block mb-1.5">Monitoreo de Hijos:</span>
                 {parentChildrenRegs.length === 0 ? (
-                  <p className="text-on-surface-variant italic">Ninguno de tus hijos vinculados se ha anotado todavía para esta misa.</p>
+                  <p className="text-gray-400 italic">Ninguno de tus hijos vinculados se ha anotado todavía para esta misa.</p>
                 ) : (
-                  <div className="space-y-1.5 mt-1">
+                  <div className="space-y-2 mt-2">
                     {parentChildrenRegs.map(reg => (
-                      <div key={reg.id} className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                      <div key={reg.id} className="flex items-center gap-2 text-white">
+                        <span className="w-2 h-2 rounded-full bg-secondary"></span>
                         <span>
-                          <strong>{reg.userName}</strong> está inscrito como <strong>{reg.userRole}</strong> (Estado: 
-                          <span className={`ml-1 px-1.5 py-0.5 rounded text-[8px] font-bold ${
-                            reg.status === "checked-in" || reg.status === "attended" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                          <strong className="text-white">{reg.userName}</strong> está inscrito como <strong className="text-secondary">{reg.userRole}</strong> (Estado: 
+                          <span className={`ml-1.5 px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                            reg.status === "checked-in" || reg.status === "attended" 
+                              ? "bg-green-500/10 text-green-400 border border-green-500/20" 
+                              : "bg-orange-500/10 text-orange-400 border border-orange-500/20"
                           }`}>
                             {reg.status === "checked-in" ? "EN TEMPLO" : reg.status === "attended" ? "COMPLETADO" : "PENDIENTE"}
                           </span>)
@@ -310,15 +312,15 @@ export default function Home({ user, onSelectMass }) {
 
           {/* Registered servers stack list */}
           <div>
-            <h3 className="text-xs font-bold text-on-surface mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white mb-3.5 flex items-center justify-between">
               <span>Servidores Litúrgicos Inscritos</span>
-              <span className="text-[10px] bg-surface-container-high px-2 py-0.5 rounded-full text-on-surface-variant font-bold">
+              <span className="text-xs bg-white/10 px-2.5 py-1 rounded-full text-white font-bold">
                 {registrations.length} monaguillos
               </span>
             </h3>
 
             {registrations.length === 0 ? (
-              <p className="text-xs text-on-surface-variant/70 italic py-6 text-center border border-dashed border-outline-variant rounded-2xl bg-surface-container-low">
+              <p className="text-sm text-gray-400 italic py-6 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
                 No hay monaguillos inscritos para esta celebración todavía.
               </p>
             ) : (
@@ -330,10 +332,10 @@ export default function Home({ user, onSelectMass }) {
                   return (
                     <div
                       key={reg.id}
-                      className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${
+                      className={`flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all ${
                         isCurrent
-                          ? "bg-primary-fixed/10 border-primary-fixed-dim"
-                          : "bg-white border-outline-variant/60 shadow-sm"
+                          ? "bg-primary/20 border-primary/40 text-white shadow-md"
+                          : "bg-white/5 border-white/10 hover:bg-white/10 text-white"
                       }`}
                     >
                       <div className="relative">
@@ -342,31 +344,31 @@ export default function Home({ user, onSelectMass }) {
                             src={reg.userPhotoURL}
                             alt={reg.userName}
                             referrerPolicy="no-referrer"
-                            className="w-10 h-10 rounded-full object-cover"
+                            className="w-11 h-11 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold uppercase">
+                          <div className="w-11 h-11 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-extrabold uppercase">
                             {reg.userName.charAt(0)}
                           </div>
                         )}
                         {isCurrent && (
-                          <div className="absolute -bottom-1 -right-1 bg-primary text-white text-[8px] rounded-full px-1 py-0.5 leading-none font-bold scale-90">
+                          <div className="absolute -bottom-1 -right-1 bg-primary text-white text-[9px] rounded-full px-1.5 py-0.5 leading-none font-bold scale-90">
                             TÚ
                           </div>
                         )}
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-on-surface truncate">{reg.userName}</p>
-                        <p className="text-[10px] text-on-surface-variant font-semibold">{reg.userRole}</p>
+                        <p className="text-sm font-bold text-white truncate">{reg.userName}</p>
+                        <p className="text-xs text-gray-300 font-medium">{reg.userRole}</p>
                       </div>
 
                       {isChecked ? (
-                        <span className="material-symbols-outlined text-green-600 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        <span className="material-symbols-outlined text-green-400 text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                           verified
                         </span>
                       ) : (
-                        <span className="material-symbols-outlined text-on-surface-variant/40 text-lg">
+                        <span className="material-symbols-outlined text-gray-400 text-xl">
                           schedule
                         </span>
                       )}
@@ -379,41 +381,41 @@ export default function Home({ user, onSelectMass }) {
 
           {/* Camino al Servicio Timeline (Only for registered Monaguillos) */}
           {user.role === "monaguillo" && isUserRegistered && (
-            <div className="bg-surface-container-lowest border border-outline-variant/40 p-5 rounded-2xl">
-              <h4 className="text-[10px] font-bold text-on-surface-variant tracking-wider uppercase mb-4">
+            <div className="bg-white/[0.01] border border-white/5 p-5 rounded-2xl">
+              <h4 className="text-xs font-bold text-secondary tracking-wider uppercase mb-4">
                 Mi Camino al Servicio en esta Misa
               </h4>
-              <div className="flex items-center justify-between px-2">
+              <div className="flex items-center justify-between px-3">
                 {/* Step 1: Inscrito */}
                 <div className="flex flex-col items-center gap-1.5">
-                  <span className={`material-symbols-outlined text-2xl transition-colors ${stepInscrito ? "text-secondary" : "text-outline-variant"}`} style={{ fontVariationSettings: stepInscrito ? "'FILL' 1" : "'FILL' 0" }}>
+                  <span className={`material-symbols-outlined text-2xl transition-colors ${stepInscrito ? "text-secondary" : "text-white/10"}`} style={{ fontVariationSettings: stepInscrito ? "'FILL' 1" : "'FILL' 0" }}>
                     footprint
                   </span>
-                  <span className={`text-[10px] font-bold ${stepInscrito ? "text-secondary" : "text-on-surface-variant"}`}>
+                  <span className={`text-xs font-bold ${stepInscrito ? "text-secondary" : "text-gray-400"}`}>
                     Inscrito
                   </span>
                 </div>
 
-                <div className={`h-[2px] flex-1 mx-3 mb-6 transition-colors ${stepEnSitio ? "bg-secondary" : "bg-outline-variant/50"}`} />
+                <div className={`h-[2px] flex-1 mx-3 mb-6 transition-colors ${stepEnSitio ? "bg-secondary" : "bg-white/10"}`} />
 
                 {/* Step 2: En Sitio */}
                 <div className="flex flex-col items-center gap-1.5">
-                  <span className={`material-symbols-outlined text-2xl transition-colors ${stepEnSitio ? "text-secondary" : "text-outline-variant"}`} style={{ fontVariationSettings: stepEnSitio ? "'FILL' 1" : "'FILL' 0" }}>
+                  <span className={`material-symbols-outlined text-2xl transition-colors ${stepEnSitio ? "text-secondary" : "text-white/10"}`} style={{ fontVariationSettings: stepEnSitio ? "'FILL' 1" : "'FILL' 0" }}>
                     footprint
                   </span>
-                  <span className={`text-[10px] font-bold ${stepEnSitio ? "text-secondary" : "text-on-surface-variant"}`}>
+                  <span className={`text-xs font-bold ${stepEnSitio ? "text-secondary" : "text-gray-400"}`}>
                     En Sitio
                   </span>
                 </div>
 
-                <div className={`h-[2px] flex-1 mx-3 mb-6 transition-colors ${stepServido ? "bg-secondary" : "bg-outline-variant/50"}`} />
+                <div className={`h-[2px] flex-1 mx-3 mb-6 transition-colors ${stepServido ? "bg-secondary" : "bg-white/10"}`} />
 
                 {/* Step 3: Servido */}
                 <div className="flex flex-col items-center gap-1.5">
-                  <span className={`material-symbols-outlined text-2xl transition-colors ${stepServido ? "text-secondary" : "text-outline-variant"}`} style={{ fontVariationSettings: stepServido ? "'FILL' 1" : "'FILL' 0" }}>
+                  <span className={`material-symbols-outlined text-2xl transition-colors ${stepServido ? "text-secondary" : "text-white/10"}`} style={{ fontVariationSettings: stepServido ? "'FILL' 1" : "'FILL' 0" }}>
                     footprint
                   </span>
-                  <span className={`text-[10px] font-bold ${stepServido ? "text-secondary" : "text-on-surface-variant"}`}>
+                  <span className={`text-xs font-bold ${stepServido ? "text-secondary" : "text-gray-400"}`}>
                     Servido
                   </span>
                 </div>
@@ -423,18 +425,18 @@ export default function Home({ user, onSelectMass }) {
 
           {/* Role selector selector if not registered */}
           {user.role === "monaguillo" && !isUserRegistered && (
-            <div className="bg-surface-container-low border border-outline-variant/40 p-4 rounded-2xl flex flex-col gap-2">
-              <label className="text-xs font-bold text-on-surface-variant">Selecciona tu Rol Litúrgico para anotarte:</label>
+            <div className="bg-white/5 border border-white/10 p-5 rounded-2xl flex flex-col gap-3">
+              <label className="text-sm font-bold text-secondary">Selecciona tu Rol Litúrgico para anotarte:</label>
               <div className="grid grid-cols-3 gap-2">
                 {rolesList.map(r => (
                   <button
                     key={r}
                     type="button"
                     onClick={() => setSelectedRole(r)}
-                    className={`h-9 rounded-xl text-xs font-bold border transition-all ${
+                    className={`h-11 rounded-xl text-xs font-bold border transition-all ${
                       selectedRole === r
-                        ? "bg-primary text-white border-primary shadow-sm"
-                        : "bg-white border-outline-variant text-on-surface-variant hover:border-outline"
+                        ? "bg-primary text-white border-primary shadow"
+                        : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     {r}
@@ -447,7 +449,7 @@ export default function Home({ user, onSelectMass }) {
         </div>
 
         {/* Footer Actions */}
-        <footer className="p-6 md:px-8 bg-surface-container-low border-t border-outline-variant/30 flex flex-col gap-2">
+        <footer className="p-6 md:px-8 bg-black/40 border-t border-white/10 flex flex-col gap-3">
           {user.role === "monaguillo" && (
             <>
               {/* Check-in Button */}
@@ -455,12 +457,12 @@ export default function Home({ user, onSelectMass }) {
                 <button
                   onClick={handleCheckIn}
                   disabled={!checkInOpen || isUserCheckedIn || actionLoading}
-                  className={`w-full font-bold text-xs py-3.5 rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
+                  className={`w-full font-extrabold text-sm py-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 ${
                     isUserCheckedIn
-                      ? "bg-green-600 text-white cursor-not-allowed"
+                      ? "bg-green-600 text-white cursor-not-allowed border border-green-400/20"
                       : checkInOpen
-                        ? "bg-secondary text-on-secondary hover:opacity-90"
-                        : "bg-surface-variant text-on-surface-variant opacity-60 cursor-not-allowed"
+                        ? "bg-secondary text-black hover:bg-secondary/90"
+                        : "bg-white/5 text-gray-500 cursor-not-allowed"
                   }`}
                 >
                   <span className="material-symbols-outlined text-lg">how_to_reg</span>
@@ -478,7 +480,7 @@ export default function Home({ user, onSelectMass }) {
                   <button
                     onClick={handleCancel}
                     disabled={actionLoading}
-                    className="flex-1 border-2 border-primary text-primary font-bold py-3.5 rounded-xl hover:bg-primary-fixed/10 transition-colors text-xs active:scale-95"
+                    className="flex-1 border-2 border-primary text-primary font-bold py-3.5 rounded-xl hover:bg-primary/10 transition-colors text-sm active:scale-95"
                   >
                     CANCELAR ASISTENCIA A ESTA MISA
                   </button>
@@ -486,9 +488,9 @@ export default function Home({ user, onSelectMass }) {
                   <button
                     onClick={handleRegister}
                     disabled={actionLoading}
-                    className="flex-1 bg-primary text-white font-bold py-3.5 rounded-xl hover:bg-primary-container transition-colors text-xs active:scale-95"
+                    className="flex-1 bg-primary text-white font-bold py-3.5 rounded-xl hover:bg-primary/90 transition-colors text-sm active:scale-95"
                   >
-                    ANOTARME EN ESTA MISA
+                    ANOTARSE EN ESTA MISA
                   </button>
                 )}
               </div>
@@ -499,7 +501,7 @@ export default function Home({ user, onSelectMass }) {
           {user.role === "admin" && (
             <button
               onClick={() => onSelectMass(mass, dateStr)}
-              className="w-full bg-primary text-white py-3.5 rounded-xl font-bold text-xs hover:bg-primary-container transition-colors active:scale-95 flex items-center justify-center gap-2 shadow-sm"
+              className="w-full bg-primary text-white py-4 rounded-xl font-extrabold text-sm hover:bg-primary/90 transition-colors active:scale-95 flex items-center justify-center gap-2 shadow-md"
             >
               <span className="material-symbols-outlined text-[18px]">playlist_add_check</span>
               VER HOJA DE ASISTENCIA EN DETALLE
@@ -507,7 +509,7 @@ export default function Home({ user, onSelectMass }) {
           )}
 
           {user.role === "padre" && (
-            <p className="text-[10px] text-center text-on-surface-variant/70 italic leading-relaxed">
+            <p className="text-xs text-center text-gray-400 italic leading-relaxed">
               * Para inscribir o modificar turnos de tus hijos, utiliza la pestaña de Calendario o comunícate con el Coordinador.
             </p>
           )}

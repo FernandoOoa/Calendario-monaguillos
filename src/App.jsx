@@ -90,7 +90,11 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background font-sans relative">
+    <div className="min-h-screen flex flex-col bg-background font-sans relative overflow-hidden text-white selection:bg-primary selection:text-white">
+      {/* Ambient Glow Orbs */}
+      <div className="fixed top-0 left-1/4 w-[500px] h-[500px] rounded-full bg-glow-primary animate-float-slow pointer-events-none z-0"></div>
+      <div className="fixed bottom-0 right-1/4 w-[600px] h-[600px] rounded-full bg-glow-secondary animate-float-slower pointer-events-none z-0"></div>
+
       {/* Firebase Permission Error Notification Banner */}
       {user.error && (
         <div className="bg-error text-white p-3.5 text-center text-xs font-bold flex items-center justify-center gap-2 relative z-50 animate-in fade-in duration-300">

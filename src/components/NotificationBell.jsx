@@ -68,7 +68,7 @@ export default function NotificationBell({ user }) {
 
       {/* Notifications Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-80 md:w-96 bg-[#1c1c1c] border border-white/10 rounded-2xl shadow-xl z-50 overflow-hidden text-white">
           {/* Header */}
           <div className="p-4 bg-surface-container-low border-b border-outline-variant flex justify-between items-center">
             <h3 className="font-bold text-on-surface text-sm flex items-center gap-1.5">
@@ -95,7 +95,7 @@ export default function NotificationBell({ user }) {
               notifications.map((notif) => (
                 <div
                   key={notif.id}
-                  className={`p-4 transition-colors flex gap-3 ${notif.read ? "bg-white" : "bg-primary-fixed/10"}`}
+                  className={`p-4 transition-colors flex gap-3 ${notif.read ? "bg-[#1c1c1c]" : "bg-white/[0.03]"}`}
                 >
                   {/* Status Icon */}
                   <span className={`material-symbols-outlined text-xl mt-0.5 ${

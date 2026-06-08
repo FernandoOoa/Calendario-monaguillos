@@ -104,7 +104,7 @@ export default function DevPanel() {
   };
 
   return (
-    <div className="bg-white p-6 rounded-3xl border border-outline-variant/40 card-shadow space-y-6 font-sans">
+    <div className="bg-[#1c1c1c] p-6 rounded-3xl border border-white/10 card-shadow space-y-6 font-sans text-white">
       {/* Header */}
       <div className="flex justify-between items-center border-b border-outline-variant/30 pb-4">
         <h3 className="font-bold text-on-surface text-base flex items-center gap-2">
@@ -152,7 +152,7 @@ export default function DevPanel() {
           </h4>
 
           {/* Current Active Time Display */}
-          <div className="p-3 bg-white rounded-xl border border-outline-variant/60 space-y-1">
+          <div className="p-3 bg-[#161616] rounded-xl border border-white/10 space-y-1">
             <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider block">Hora actual del sistema:</span>
             <div className="flex items-center gap-1.5">
               <span className={`w-2 h-2 rounded-full ${currentFormattedTime.isShifted ? "bg-orange-500 animate-pulse" : "bg-green-600"}`} />
@@ -180,7 +180,7 @@ export default function DevPanel() {
               type="datetime-local"
               value={simTime}
               onChange={handleTimeChange}
-              className="w-full h-11 px-4 border border-outline-variant rounded-xl text-xs outline-none focus:border-primary"
+              className="w-full h-11 px-4 bg-white/5 border border-white/10 text-white rounded-xl text-xs outline-none focus:border-primary"
             />
             <div className="flex gap-2">
               <button
@@ -222,13 +222,13 @@ export default function DevPanel() {
           </div>
 
           {emailLogs.length === 0 ? (
-            <div className="text-center py-8 text-on-surface-variant/60 bg-white border border-dashed border-outline-variant rounded-xl font-medium">
+            <div className="text-center py-8 text-on-surface-variant/60 bg-[#161616] border border-dashed border-white/10 rounded-xl font-medium">
               No se han gatillado correos electrónicos automáticos en esta sesión.
             </div>
           ) : (
             <div className="space-y-3 overflow-y-auto max-h-52 no-scrollbar">
               {emailLogs.map((log) => (
-                <div key={log.id} className="bg-white p-3 rounded-xl border border-outline-variant/60 flex flex-col gap-1.5 shadow-sm">
+                <div key={log.id} className="bg-[#161616] p-3 rounded-xl border border-white/10 flex flex-col gap-1.5 shadow-sm">
                   <div className="flex justify-between font-bold text-[9px] text-on-surface-variant border-b pb-1.5">
                     <span>Para: {log.to}</span>
                     <span>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
