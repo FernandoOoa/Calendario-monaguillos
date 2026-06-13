@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { db, dev } from "../services/firebase";
+import { db } from "../services/firebase";
 import { alerts } from "../services/alerts";
 import { formatTimeToAMPM, getLocalDateString } from "../utils/time";
 
@@ -7,19 +7,16 @@ export default function Home({ user, onSelectMass }) {
   const [nextMassData, setNextMassData] = useState(null); // { mass, dateStr, massStart }
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRole, setSelectedRole] = useState("Acólito");
   const [countdownText, setCountdownText] = useState("");
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [parentChildrenRegs, setParentChildrenRegs] = useState([]);
 
-  const rolesList = ["Acólito", "Crucífero", "Turiferario", "Ceroferario", "Navicularia", "Ceremoniario"];
-
   // Find next upcoming mass algorithm
   const findNextMass = async () => {
     setLoading(true);
     try {
-      const now = dev.getSimulatedTime();
+      const now = new Date();
       let found = null;
       
       // Look day by day for the next 7 days
@@ -75,14 +72,12 @@ export default function Home({ user, onSelectMass }) {
   useEffect(() => {
     findNextMass();
     
-    // Listen for state changes (e.g. time travel, register)
+    // Listen for state changes (e.g. register)
     const handleSync = () => findNextMass();
     window.addEventListener("mass-state-updated", handleSync);
-    window.addEventListener("simulated-time-changed", handleSync);
     
     return () => {
       window.removeEventListener("mass-state-updated", handleSync);
-      window.removeEventListener("simulated-time-changed", handleSync);
     };
   }, [user]);
 
@@ -91,7 +86,7 @@ export default function Home({ user, onSelectMass }) {
     if (!nextMassData) return;
     
     const updateCountdown = () => {
-      const now = dev.getSimulatedTime();
+      const now = new Date();
       const massStart = nextMassData.massStart;
       const diffMs = massStart - now;
       
@@ -139,7 +134,7 @@ export default function Home({ user, onSelectMass }) {
     if (!nextMassData || user.role !== "monaguillo") return;
     setActionLoading(true);
     try {
-      await db.registerForMass(nextMassData.mass.id, user, selectedRole, nextMassData.dateStr);
+      await db.registerForMass(nextMassData.mass.id, user, "Monaguillo", nextMassData.dateStr);
       window.dispatchEvent(new Event("mass-state-updated"));
       alerts.alert("¡Te has anotado con éxito para la misa!", "Inscripción Exitosa", "success");
     } catch (err) {
@@ -191,11 +186,28 @@ export default function Home({ user, onSelectMass }) {
 
   if (!nextMassData) {
     return (
-      <div className="flex-grow py-8 max-w-4xl mx-auto w-full px-container-padding-mobile md:px-container-padding-desktop flex flex-col items-center justify-center text-center gap-4">
-        <span className="material-symbols-outlined text-4xl text-on-surface-variant">church</span>
-        <div>
-          <h2 className="text-lg font-bold text-on-surface">Sin Misas Programadas</h2>
-          <p className="text-xs text-on-surface-variant/70 mt-1 max-w-sm">No se encontraron celebraciones en los próximos 7 días en el calendario.</p>
+      <div className="flex-grow py-8 max-w-4xl mx-auto w-full px-container-padding-mobile md:px-container-padding-desktop flex flex-col items-center justify-center text-center gap-6">
+        {/* Welcome Section */}
+        <section className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-white text-left">¡Hola, {user.name}!</h1>
+            <p className="text-xs text-on-surface-variant text-left">Esta es la próxima celebración programada en la parroquia.</p>
+          </div>
+          <span className="text-[10px] bg-secondary-container text-on-secondary-container px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+            {user.role === "monaguillo" ? "Monaguillo" : user.role === "padre" ? "Padre / Tutor" : "Coordinador (Admin)"}
+          </span>
+        </section>
+
+        <div className="w-full bg-white/5 border border-white/10 backdrop-blur-xl rounded-[32px] p-10 flex flex-col items-center gap-4 card-shadow">
+          <span className="material-symbols-outlined text-5xl text-secondary animate-pulse" style={{ fontVariationSettings: "'FILL' 0" }}>
+            church
+          </span>
+          <div>
+            <h2 className="text-lg font-bold text-white">No hay misas pendientes</h2>
+            <p className="text-xs text-gray-400 mt-2 max-w-sm mx-auto leading-relaxed">
+              No se encontraron celebraciones litúrgicas en los próximos 7 días en el calendario.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -209,7 +221,8 @@ export default function Home({ user, onSelectMass }) {
   // Footprint tracker stages
   const stepInscrito = isUserRegistered;
   const stepEnSitio = isUserCheckedIn;
-  const isMassFinished = dev.getSimulatedTime() > new Date(massStart.getTime() + 60 * 60000);
+  const isMassFinished = new Date() > new Date(massStart.getTime() + 60 * 60000);
+  const hasStarted = new Date() > massStart;
   const stepServido = isUserCheckedIn && isMassFinished;
 
   // Format date readable in spanish
@@ -360,7 +373,6 @@ export default function Home({ user, onSelectMass }) {
 
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold text-white truncate">{reg.userName}</p>
-                        <p className="text-xs text-gray-300 font-medium">{reg.userRole}</p>
                       </div>
 
                       {isChecked ? (
@@ -423,28 +435,7 @@ export default function Home({ user, onSelectMass }) {
             </div>
           )}
 
-          {/* Role selector selector if not registered */}
-          {user.role === "monaguillo" && !isUserRegistered && (
-            <div className="bg-white/5 border border-white/10 p-5 rounded-2xl flex flex-col gap-3">
-              <label className="text-sm font-bold text-secondary">Selecciona tu Rol Litúrgico para anotarte:</label>
-              <div className="grid grid-cols-3 gap-2">
-                {rolesList.map(r => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setSelectedRole(r)}
-                    className={`h-11 rounded-xl text-xs font-bold border transition-all ${
-                      selectedRole === r
-                        ? "bg-primary text-white border-primary shadow"
-                        : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Selector de rol eliminado */}
 
         </div>
 
@@ -475,8 +466,20 @@ export default function Home({ user, onSelectMass }) {
               )}
 
               {/* Register / Cancel Button group */}
-              <div className="flex gap-2">
-                {isUserRegistered ? (
+              <div className="flex gap-2 w-full">
+                {hasStarted ? (
+                  isUserRegistered ? (
+                    <div className="w-full text-center text-xs font-bold py-3.5 px-4 rounded-xl bg-error/10 border border-error/20 text-error">
+                      {isUserCheckedIn 
+                        ? "Misa en curso / finalizada. Servicio registrado." 
+                        : "Esta celebración ya inició o finalizó. No es posible cancelar."}
+                    </div>
+                  ) : (
+                    <div className="w-full text-center text-xs font-bold py-3.5 px-4 rounded-xl bg-white/5 border border-white/10 text-gray-400">
+                      Esta celebración ya inició o finalizó. No es posible inscribirse.
+                    </div>
+                  )
+                ) : isUserRegistered ? (
                   <button
                     onClick={handleCancel}
                     disabled={actionLoading}

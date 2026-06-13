@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { db, dev } from "../services/firebase";
+import { useEffect, useState } from "react";
 import { alerts } from "../services/alerts";
-import DevPanel from "../components/DevPanel";
+import { db } from "../services/firebase";
 
 export default function Profile({ user, onUpdateUser }) {
   const [stats, setStats] = useState({ servedCount: 0, punctuality: 100, level: 1 });
@@ -9,7 +8,7 @@ export default function Profile({ user, onUpdateUser }) {
   const [notifications, setNotifications] = useState([]);
   const [history, setHistory] = useState([]);
   const [children, setChildren] = useState([]);
-  
+
   // New child form for parents
   const [newChildEmail, setNewChildEmail] = useState("");
   const [childFormError, setChildFormError] = useState("");
@@ -28,14 +27,14 @@ export default function Profile({ user, onUpdateUser }) {
           });
           setRecurrenceConfirmed(profile.activeRecurrence || false);
         }
-        
+
         const hist = await db.getHistory(user.uid);
         setHistory(hist);
       } else if (user.role === "padre") {
         const list = await db.getChildrenForParent(user.uid);
         setChildren(list);
       }
-      
+
       const notifs = await db.getNotifications(user.uid);
       setNotifications(notifs);
     } catch (e) {
@@ -49,15 +48,11 @@ export default function Profile({ user, onUpdateUser }) {
     // Event listeners
     const handleUpdate = () => loadProfileData();
     window.addEventListener("notifications-updated", handleUpdate);
-    window.addEventListener("simulated-email-sent", handleUpdate);
     window.addEventListener("mass-state-updated", handleUpdate);
-    window.addEventListener("simulated-time-changed", handleUpdate);
-    
+
     return () => {
       window.removeEventListener("notifications-updated", handleUpdate);
-      window.removeEventListener("simulated-email-sent", handleUpdate);
       window.removeEventListener("mass-state-updated", handleUpdate);
-      window.removeEventListener("simulated-time-changed", handleUpdate);
     };
   }, [user]);
 
@@ -79,25 +74,25 @@ export default function Profile({ user, onUpdateUser }) {
     e.preventDefault();
     setChildFormError("");
     setChildFormSuccess("");
-    
+
     if (!newChildEmail.trim()) return;
 
     try {
       // Create relationship
       const users = JSON.parse(localStorage.getItem("joselito_users") || "{}");
-      
+
       // Update parent childEmails list
       const parentUser = users[user.uid];
       if (!parentUser.childEmails) parentUser.childEmails = [];
-      
+
       if (parentUser.childEmails.includes(newChildEmail)) {
         setChildFormError("Este correo ya está en tu lista.");
         return;
       }
-      
+
       parentUser.childEmails.push(newChildEmail);
       users[user.uid] = parentUser;
-      
+
       // Check if child user exists
       const childUser = Object.values(users).find(u => u.email.toLowerCase() === newChildEmail.toLowerCase());
       if (childUser) {
@@ -121,11 +116,11 @@ export default function Profile({ user, onUpdateUser }) {
         };
         setChildFormSuccess(`Hijo registrado. Esperando que cree su cuenta con: ${newChildEmail}`);
       }
-      
+
       localStorage.setItem("joselito_users", JSON.stringify(users));
       setNewChildEmail("");
       loadProfileData();
-      
+
       if (onUpdateUser) {
         onUpdateUser(parentUser);
       }
@@ -137,7 +132,7 @@ export default function Profile({ user, onUpdateUser }) {
   // Determine next month name dynamically
   const getNextMonthName = () => {
     const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    const now = dev.getSimulatedTime();
+    const now = new Date();
     const nextIdx = (now.getMonth() + 1) % 12;
     return months[nextIdx];
   };
@@ -166,14 +161,14 @@ export default function Profile({ user, onUpdateUser }) {
             </span>
           </div>
         </div>
-        
+
         <div className="flex-grow">
           <h1 className="text-2xl md:text-3xl font-bold text-on-surface mb-1">
             {user.name} {user.lastName}
           </h1>
           <p className="text-xs text-on-surface-variant flex items-center justify-center md:justify-start gap-1.5 font-semibold">
             <span className="material-symbols-outlined text-primary text-base">church</span>
-            Parroquia San José Sánchez del Río
+            Parroquia El Padre Eterno
           </p>
           <div className="mt-3 flex flex-wrap justify-center md:justify-start gap-2">
             <span className="px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/10 font-bold text-[10px] uppercase tracking-wider">
@@ -203,10 +198,10 @@ export default function Profile({ user, onUpdateUser }) {
 
       {/* Main Bento Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
+
         {/* Left Column: Role dependent actions */}
         <div className="lg:col-span-4 flex flex-col gap-6">
-          
+
           {/* Altar Server Recurrence Confirmation */}
           {user.role === "monaguillo" && (
             <div className="glass-card p-6 rounded-3xl border border-white/10 shadow-lg border-l-4 border-l-secondary">
@@ -257,11 +252,10 @@ export default function Profile({ user, onUpdateUser }) {
                           {child.isPendingSignUp ? "Esperando registro..." : `Nivel ${child.level} • ${child.servedCount} misas`}
                         </p>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[8px] font-bold ${
-                        child.isPendingSignUp 
-                          ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" 
+                      <span className={`px-2 py-0.5 rounded text-[8px] font-bold ${child.isPendingSignUp
+                          ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                           : "bg-green-500/10 text-green-400 border border-green-500/20"
-                      }`}>
+                        }`}>
                         {child.isPendingSignUp ? "PENDIENTE" : "ACTIVO"}
                       </span>
                     </div>
@@ -272,7 +266,7 @@ export default function Profile({ user, onUpdateUser }) {
               {/* Add child form */}
               <form onSubmit={handleAddChild} className="border-t border-white/10 pt-4 space-y-3">
                 <h3 className="text-xs font-bold text-on-surface-variant">Vincular otro hijo</h3>
-                
+
                 {childFormError && <p className="text-[10px] text-error font-bold">{childFormError}</p>}
                 {childFormSuccess && <p className="text-[10px] text-green-400 font-bold">{childFormSuccess}</p>}
 
@@ -309,10 +303,9 @@ export default function Profile({ user, onUpdateUser }) {
               ) : (
                 notifications.map((notif) => (
                   <div key={notif.id} className="p-3 bg-white/[0.02] rounded-xl border border-white/5 flex gap-2">
-                    <span className={`material-symbols-outlined text-lg ${
-                      notif.type === "error" ? "text-error" : 
-                      notif.type === "warning" ? "text-secondary" : "text-primary"
-                    }`}>
+                    <span className={`material-symbols-outlined text-lg ${notif.type === "error" ? "text-error" :
+                        notif.type === "warning" ? "text-secondary" : "text-primary"
+                      }`}>
                       {notif.type === "error" ? "error" : "info"}
                     </span>
                     <div>
@@ -329,7 +322,14 @@ export default function Profile({ user, onUpdateUser }) {
         {/* Right Column: History & Details */}
         <div className="lg:col-span-8">
           {user.role === "admin" ? (
-            <DevPanel />
+            <div className="glass-card p-6 rounded-3xl border border-white/10 shadow-lg h-full flex flex-col justify-center items-center text-center">
+              <span className="material-symbols-outlined text-4xl text-primary mb-3">admin_panel_settings</span>
+              <h2 className="text-base font-bold text-on-surface mb-2">Panel de Control de Coordinador</h2>
+              <p className="max-w-md text-xs text-on-surface-variant leading-relaxed">
+                Como Coordinador (Administrador), tienes acceso a todas las herramientas de gestión en la pestaña de <strong>Administración</strong>.
+                Ahí podrás crear nuevas misas, gestionar los registros de los monaguillos y configurar el sistema.
+              </p>
+            </div>
           ) : (
             <div className="glass-card p-6 rounded-3xl border border-white/10 shadow-lg h-full flex flex-col">
               <h2 className="text-base font-bold text-on-surface mb-6 flex items-center gap-2">
@@ -372,9 +372,8 @@ export default function Profile({ user, onUpdateUser }) {
                             </td>
                             <td className="py-4">
                               <span className="flex items-center gap-1 font-semibold text-on-surface">
-                                <span className={`w-2 h-2 rounded-full ${
-                                  hist.status.includes("Cumplido") ? "bg-green-500" : "bg-error"
-                                }`} />
+                                <span className={`w-2 h-2 rounded-full ${hist.status.includes("Cumplido") ? "bg-green-500" : "bg-error"
+                                  }`} />
                                 {hist.status}
                               </span>
                             </td>
@@ -390,8 +389,8 @@ export default function Profile({ user, onUpdateUser }) {
                   <span className="material-symbols-outlined text-4xl text-primary mb-3">supervisor_account</span>
                   <p className="font-bold text-on-surface text-sm mb-2">Panel de Control de Padre / Tutor</p>
                   <p className="max-w-md leading-relaxed">
-                    Desde esta sección puedes monitorear el servicio al altar de tus hijos. 
-                    Recibirás alertas en tu correo electrónico en tiempo real en caso de que tus hijos cancelen su asistencia de último minuto, 
+                    Desde esta sección puedes monitorear el servicio al altar de tus hijos.
+                    Recibirás alertas en tu correo electrónico en tiempo real en caso de que tus hijos cancelen su asistencia de último minuto,
                     permitiéndote estar enterado de sus responsabilidades parroquiales.
                   </p>
                 </div>

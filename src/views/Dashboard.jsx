@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { db, dev } from "../services/firebase";
+import { db } from "../services/firebase";
 import { alerts } from "../services/alerts";
 import { formatTimeToAMPM, getLocalDateString } from "../utils/time";
 
 export default function Dashboard({ user, onSelectMass }) {
   const [viewMode, setViewMode] = useState("week"); // 'week' or 'month'
-  const [currentDate, setCurrentDate] = useState(dev.getSimulatedTime()); // Anchor date for week or month
+  const [currentDate, setCurrentDate] = useState(new Date()); // Anchor date for week or month
   const [calendarDays, setCalendarDays] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null); // Selected day object
   const [masses, setMasses] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [scheduledDays, setScheduledDays] = useState(new Set());
 
   // Generate 7 days for the weekly view
   const generateWeek = (refDate) => {
@@ -85,25 +86,29 @@ export default function Dashboard({ user, onSelectMass }) {
 
   // Set initial selected date to today
   useEffect(() => {
-    const today = dev.getSimulatedTime();
+    const today = new Date();
     const todayStr = getLocalDateString(today);
     setSelectedDate({
       date: today,
       dateStr: todayStr,
       dayOfWeek: today.getDay()
     });
+  }, []);
 
-    const handleTimeChange = () => {
-      const todayNew = dev.getSimulatedTime();
-      setCurrentDate(todayNew);
-      setSelectedDate({
-        date: todayNew,
-        dateStr: getLocalDateString(todayNew),
-        dayOfWeek: todayNew.getDay()
-      });
-    };
-    window.addEventListener("simulated-time-changed", handleTimeChange);
-    return () => window.removeEventListener("simulated-time-changed", handleTimeChange);
+  const loadScheduledDays = async () => {
+    try {
+      const list = await db.getAllMasses();
+      const days = new Set(list.map(m => m.dayOfWeek));
+      setScheduledDays(days);
+    } catch (e) {
+      console.error("Error loading scheduled days:", e);
+    }
+  };
+
+  useEffect(() => {
+    loadScheduledDays();
+    window.addEventListener("mass-state-updated", loadScheduledDays);
+    return () => window.removeEventListener("mass-state-updated", loadScheduledDays);
   }, []);
 
   // Fetch masses for the selected day
@@ -273,10 +278,10 @@ export default function Dashboard({ user, onSelectMass }) {
           <div className="grid grid-cols-7 gap-2">
             {calendarDays.map((day) => {
               const isSelected = selectedDate && selectedDate.dateStr === day.dateStr;
-              const isToday = getLocalDateString(dev.getSimulatedTime()) === day.dateStr;
+              const isToday = getLocalDateString(new Date()) === day.dateStr;
               
-              // Mass schedule indicator rule (Sunday/Tues/Sat)
-              const hasMass = day.dayOfWeek === 0 || day.dayOfWeek === 2 || day.dayOfWeek === 6;
+              // Mass schedule indicator rule (checks if this day of the week has a mass in the database)
+              const hasMass = scheduledDays.has(day.dayOfWeek);
 
               return (
                 <button

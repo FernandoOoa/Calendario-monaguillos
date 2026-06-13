@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { db, dev } from "../services/firebase";
+import { db } from "../services/firebase";
 import { alerts } from "../services/alerts";
 import { formatTimeToAMPM, getLocalDateString } from "../utils/time";
 
@@ -44,12 +44,13 @@ export default function Admin({ user }) {
 
   const loadAdminData = async () => {
     try {
-      // Get all masses (simulate query all)
-      const masses = JSON.parse(localStorage.getItem("joselito_masses") || "[]");
+      // Get all masses using the database service
+      const masses = await db.getAllMasses();
       setMassesList(masses);
       
       // Update email logs
-      setEmailLogs(dev.getEmailLogs());
+      const logs = await db.getEmailLogs();
+      setEmailLogs(logs);
     } catch (e) {
       console.error(e);
     }
@@ -59,25 +60,14 @@ export default function Admin({ user }) {
     loadAdminData();
     
     // Set initial inspect date to today
-    const todayStr = getLocalDateString(dev.getSimulatedTime());
+    const todayStr = getLocalDateString(new Date());
     setInspectDate(todayStr);
 
     const handleUpdate = () => loadAdminData();
-    const handleTimeChange = () => {
-      const newTodayStr = getLocalDateString(dev.getSimulatedTime());
-      setInspectDate(newTodayStr);
-      loadAdminData();
-    };
 
     window.addEventListener("mass-state-updated", handleUpdate);
-    window.addEventListener("simulated-email-sent", handleUpdate);
-    window.addEventListener("simulated-emails-cleared", handleUpdate);
-    window.addEventListener("simulated-time-changed", handleTimeChange);
     return () => {
       window.removeEventListener("mass-state-updated", handleUpdate);
-      window.removeEventListener("simulated-email-sent", handleUpdate);
-      window.removeEventListener("simulated-emails-cleared", handleUpdate);
-      window.removeEventListener("simulated-time-changed", handleTimeChange);
     };
   }, []);
 
@@ -174,19 +164,14 @@ export default function Admin({ user }) {
   // Toggle server attendance manually (Admin control)
   const handleToggleAttendanceStatus = async (reg) => {
     try {
-      const regs = JSON.parse(localStorage.getItem("joselito_registrations") || "[]");
-      const match = regs.find(r => r.id === reg.id);
-      if (match) {
-        // Toggle: pending -> checked-in -> attended -> cancelled -> pending
-        if (match.status === "pending") match.status = "checked-in";
-        else if (match.status === "checked-in") match.status = "attended";
-        else if (match.status === "attended") match.status = "cancelled";
-        else match.status = "pending";
-        
-        localStorage.setItem("joselito_registrations", JSON.stringify(regs));
-        loadAttendance();
-        window.dispatchEvent(new Event("mass-state-updated"));
-      }
+      let nextStatus = "pending";
+      if (reg.status === "pending") nextStatus = "checked-in";
+      else if (reg.status === "checked-in") nextStatus = "attended";
+      else if (reg.status === "attended") nextStatus = "cancelled";
+
+      await db.updateRegistrationStatus(reg.id, nextStatus);
+      loadAttendance();
+      window.dispatchEvent(new Event("mass-state-updated"));
     } catch (e) {
       console.error(e);
     }
@@ -471,7 +456,6 @@ export default function Admin({ user }) {
                   <thead>
                     <tr className="border-b border-white/10 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                       <th className="py-2.5">Monaguillo</th>
-                      <th className="py-2.5">Rol de Misa</th>
                       <th className="py-2.5">Estado Asistencia</th>
                       <th className="py-2.5 text-right">Acción Manual</th>
                     </tr>
@@ -480,7 +464,6 @@ export default function Admin({ user }) {
                     {attendanceList.map((reg) => (
                       <tr key={reg.id} className="hover:bg-white/[0.02] transition-colors">
                         <td className="py-3 font-bold text-on-surface">{reg.userName}</td>
-                        <td className="py-3 font-semibold text-on-surface-variant">{reg.userRole}</td>
                         <td className="py-3">
                           <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider ${
                             reg.status === "attended" ? "bg-green-500/10 text-green-400 border border-green-500/20" :
@@ -518,14 +501,7 @@ export default function Admin({ user }) {
               <span className="material-symbols-outlined text-primary">mail</span>
               Logs de Notificaciones de Correo Enviadas
             </h2>
-            {emailLogs.length > 0 && (
-              <button
-                onClick={() => dev.clearEmailLogs()}
-                className="text-primary font-bold text-xs hover:underline"
-              >
-                Limpiar Logs
-              </button>
-            )}
+            {/* Limpiar Logs deshabilitado en base de datos de producción */}
           </div>
 
           {emailLogs.length === 0 ? (

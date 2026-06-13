@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { db, dev } from "../services/firebase";
+import { db } from "../services/firebase";
 import { alerts } from "../services/alerts";
 import { formatTimeToAMPM } from "../utils/time";
 
@@ -7,10 +7,7 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
   const [registrations, setRegistrations] = useState([]);
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
   const [checkInStatusText, setCheckInStatusText] = useState("");
-  const [selectedRole, setSelectedRole] = useState("Acólito");
   const [loading, setLoading] = useState(false);
-
-  const rolesList = ["Acólito", "Crucífero", "Turiferario", "Ceroferario", "Navicularia", "Ceremoniario"];
 
   const fetchRegistrations = async () => {
     try {
@@ -27,7 +24,7 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
     const [hour, minute] = mass.time.split(":").map(Number);
     const massStart = new Date(year, month - 1, day, hour, minute);
     
-    const now = dev.getSimulatedTime();
+    const now = new Date();
     const diffMs = now - massStart;
     const diffMins = diffMs / 60000;
     
@@ -68,7 +65,7 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
     if (user.role !== "monaguillo") return;
     setLoading(true);
     try {
-      await db.registerForMass(mass.id, user, selectedRole, dateStr);
+      await db.registerForMass(mass.id, user, "Monaguillo", dateStr);
       window.dispatchEvent(new Event("mass-state-updated"));
     } catch (err) {
       alerts.alert(err.message, "Error al anotarse", "error");
@@ -115,7 +112,8 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
   const [year, month, day] = dateStr.split("-").map(Number);
   const [hour, minute] = mass.time.split(":").map(Number);
   const massStart = new Date(year, month - 1, day, hour, minute);
-  const isMassFinished = dev.getSimulatedTime() > new Date(massStart.getTime() + 60 * 60000);
+  const isMassFinished = new Date() > new Date(massStart.getTime() + 60 * 60000);
+  const hasStarted = new Date() > massStart;
   const stepServido = isUserCheckedIn && isMassFinished;
 
   return (
@@ -224,7 +222,6 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
                       
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold text-white truncate">{reg.userName}</p>
-                        <p className="text-xs text-gray-300 font-medium">{reg.userRole}</p>
                       </div>
 
                       {isChecked ? (
@@ -287,28 +284,7 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
             </section>
           )}
 
-          {/* Role selector if not registered */}
-          {user.role === "monaguillo" && !isUserRegistered && (
-            <div className="bg-white/5 border border-white/10 p-5 rounded-2xl flex flex-col gap-3">
-              <label className="text-sm font-bold text-secondary">Selecciona tu Rol Litúrgico:</label>
-              <div className="grid grid-cols-3 gap-2">
-                {rolesList.map(r => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setSelectedRole(r)}
-                    className={`h-11 rounded-xl text-xs font-bold border transition-all ${
-                      selectedRole === r
-                        ? "bg-primary text-white border-primary shadow"
-                        : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Selector de rol eliminado */}
 
         </div>
 
@@ -339,8 +315,20 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
               )}
 
               {/* Register / Cancel Button group */}
-              <div className="flex gap-2">
-                {isUserRegistered ? (
+              <div className="flex gap-2 w-full">
+                {hasStarted ? (
+                  isUserRegistered ? (
+                    <div className="w-full text-center text-xs font-bold py-3 px-4 rounded-xl bg-error/10 border border-error/20 text-error">
+                      {isUserCheckedIn 
+                        ? "Misa finalizada. Servicio completado." 
+                        : "Esta celebración ya inició o finalizó. No es posible cancelar."}
+                    </div>
+                  ) : (
+                    <div className="w-full text-center text-xs font-bold py-3 px-4 rounded-xl bg-white/5 border border-white/10 text-gray-400">
+                      Esta celebración ya inició o finalizó. No es posible inscribirse.
+                    </div>
+                  )
+                ) : isUserRegistered ? (
                   <button
                     onClick={handleCancel}
                     disabled={loading}

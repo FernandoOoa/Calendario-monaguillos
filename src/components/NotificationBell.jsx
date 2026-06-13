@@ -19,10 +19,9 @@ export default function NotificationBell({ user }) {
   useEffect(() => {
     fetchNotifications();
 
-    // Poll or listen for simulated updates
+    // Listen for updates
     const handleUpdate = () => fetchNotifications();
     window.addEventListener("notifications-updated", handleUpdate);
-    window.addEventListener("simulated-email-sent", handleUpdate); // Simulated notifications often happen on email events too
     
     // Click outside listener
     const handleClickOutside = (e) => {
@@ -34,7 +33,6 @@ export default function NotificationBell({ user }) {
 
     return () => {
       window.removeEventListener("notifications-updated", handleUpdate);
-      window.removeEventListener("simulated-email-sent", handleUpdate);
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [user]);

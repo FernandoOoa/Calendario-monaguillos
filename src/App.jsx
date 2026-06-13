@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { auth } from "./services/firebase";
-import Navigation from "./components/Navigation";
-import Auth from "./views/Auth";
+import { useEffect, useState } from "react";
 import CustomAlertModal from "./components/CustomAlertModal";
-import Home from "./views/Home";
-import Dashboard from "./views/Dashboard";
-import Profile from "./views/Profile";
+import Navigation from "./components/Navigation";
+import { auth } from "./services/firebase";
 import Admin from "./views/Admin";
+import Auth from "./views/Auth";
+import Dashboard from "./views/Dashboard";
+import Home from "./views/Home";
 import MassDetailModal from "./views/MassDetailModal";
+import Profile from "./views/Profile";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -21,7 +21,7 @@ export default function App() {
     const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
-      
+
       // Default views based on roles
       if (firebaseUser) {
         if (firebaseUser.role === "admin") {
@@ -122,11 +122,11 @@ export default function App() {
         {currentView === "dashboard" && (
           <Dashboard user={user} onSelectMass={handleSelectMass} />
         )}
-        
+
         {currentView === "profile" && (
           <Profile user={user} onUpdateUser={handleUpdateUser} />
         )}
-        
+
         {currentView === "admin" && user.role === "admin" && (
           <Admin user={user} />
         )}
@@ -140,7 +140,7 @@ export default function App() {
             <span className="text-primary font-bold">Joselito</span>
           </div>
           <div className="text-on-surface-variant text-center md:text-left">
-            © 2026 Joselito Altar Server Management. Parroquia San José Sánchez del Río.
+            © 2026 Joselito Altar Server Management. Parroquia El Padre Eterno.
           </div>
           <div className="flex gap-4 text-on-surface-variant">
             <a href="#" className="hover:text-primary transition-colors">Soporte</a>

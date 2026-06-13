@@ -19,7 +19,9 @@ import {
   where, 
   addDoc, 
   deleteDoc, 
-  updateDoc 
+  updateDoc,
+  orderBy,
+  limit
 } from "firebase/firestore";
 import { getLocalDateString } from "../utils/time";
 
@@ -46,15 +48,11 @@ try {
   console.warn("Firebase initialization failed. Falling back to local simulation.", e);
 }
 
-// Check if we should use real Firebase (toggled in the developer panel)
-const isRealFirebaseEnabled = () => {
-  const stored = localStorage.getItem("joselito_use_real_firebase");
-  return stored === null ? true : stored === "true";
-};
+// Check if we should use real Firebase (always enabled in simplified version)
+const isRealFirebaseEnabled = () => true;
 
 const toggleRealFirebase = (enable) => {
-  localStorage.setItem("joselito_use_real_firebase", enable ? "true" : "false");
-  window.location.reload();
+  // Simulación desactivada en modo producción simplificado
 };
 
 // ==========================================
@@ -260,20 +258,12 @@ const initSimulatedDb = () => {
 };
 initSimulatedDb();
 
-// Simulated App Time (Allows testing of check-in windows)
 const getSimulatedTime = () => {
-  const stored = localStorage.getItem("joselito_simulated_time");
-  if (stored) return new Date(stored);
-  return new Date(); // Fallback to real time
+  return new Date();
 };
 
 const setSimulatedTime = (dateString) => {
-  if (dateString) {
-    localStorage.setItem("joselito_simulated_time", dateString);
-  } else {
-    localStorage.removeItem("joselito_simulated_time");
-  }
-  window.dispatchEvent(new Event("simulated-time-changed"));
+  // Simulación desactivada en modo producción simplificado
 };
 
 // Simulated Email Notification Logger
@@ -465,6 +455,10 @@ const simulatedDb = {
     const exists = regs.some(r => r.massId === massId && r.userUid === user.uid && r.date === targetDateStr);
     if (exists) throw new Error("Ya estás registrado para esta misa.");
     
+    // Find mass details to denormalize
+    const masses = getStorageItem("joselito_masses", []);
+    const massData = masses.find(m => m.id === massId);
+
     const newReg = {
       id: `reg-${Date.now()}`,
       massId,
@@ -472,9 +466,12 @@ const simulatedDb = {
       userUid: user.uid,
       userName: `${user.name} ${user.lastName}`,
       userEmail: user.email,
-      userRole: role || "Acólito",
+      userRole: "Monaguillo",
       userPhotoURL: user.photoURL || "",
-      status: "pending"
+      status: "pending",
+      massTitle: massData?.title || "Misa",
+      massTime: massData?.time || "",
+      massLocation: "Templo Parroquial"
     };
     
     regs.push(newReg);
@@ -881,6 +878,19 @@ export const db = {
     if (isRealFirebaseEnabled() && realDb) {
       try {
         const targetDateStr = dateStr || getLocalDateString(getSimulatedTime());
+        
+        // Check if mass has started
+        const massSnap = await getDoc(doc(realDb, "masses", massId));
+        const massData = massSnap.exists() ? massSnap.data() : null;
+        if (!massData) throw new Error("Misa no encontrada.");
+
+        const [year, month, day] = targetDateStr.split("-").map(Number);
+        const [hour, minute] = massData.time.split(":").map(Number);
+        const massStart = new Date(year, month - 1, day, hour, minute);
+        if (new Date() > massStart) {
+          throw new Error("Esta celebración ya inició o ha finalizado. No es posible inscribirse.");
+        }
+
         const q = query(
           collection(realDb, "registrations"), 
           where("massId", "==", massId),
@@ -889,25 +899,29 @@ export const db = {
         );
         const snap = await getDocs(q);
         if (!snap.empty) throw new Error("Ya estás registrado para esta misa.");
-        
+
         const newReg = {
           massId,
           date: targetDateStr,
           userUid: user.uid,
           userName: `${user.name} ${user.lastName}`,
           userEmail: user.email,
-          userRole: role || "Acólito",
+          userRole: "Monaguillo",
           userPhotoURL: user.photoURL || "",
-          status: "pending"
+          status: "pending",
+          massTitle: massData?.title || "Misa",
+          massTime: massData?.time || "",
+          massLocation: "Templo Parroquial"
         };
         
         const docRef = await addDoc(collection(realDb, "registrations"), newReg);
         
         await addDoc(collection(realDb, "mail"), {
           to: user.email,
+          timestamp: new Date().toISOString(),
           message: {
             subject: "Confirmación de Asistencia a Misa",
-            html: `<p>Hola <strong>${user.name}</strong>, te has anotado como <strong>${role}</strong> para la misa el día <strong>${targetDateStr}</strong>.</p>`
+            html: `<p>Hola <strong>${user.name}</strong>, te has anotado para la misa el día <strong>${targetDateStr}</strong>.</p>`
           }
         });
         
@@ -930,6 +944,18 @@ export const db = {
         );
         const snap = await getDocs(q);
         if (snap.empty) throw new Error("Registro no encontrado.");
+
+        // Check if mass has started
+        const massSnap = await getDoc(doc(realDb, "masses", massId));
+        if (massSnap.exists()) {
+          const massData = massSnap.data();
+          const [year, month, day] = dateStr.split("-").map(Number);
+          const [hour, minute] = massData.time.split(":").map(Number);
+          const massStart = new Date(year, month - 1, day, hour, minute);
+          if (new Date() > massStart) {
+            throw new Error("Esta celebración ya inició o ha finalizado. No es posible cancelar la asistencia.");
+          }
+        }
         
         const regDoc = snap.docs[0];
         await deleteDoc(doc(realDb, "registrations", regDoc.id));
@@ -953,6 +979,7 @@ export const db = {
               
               await addDoc(collection(realDb, "mail"), {
                 to: parent.email,
+                timestamp: new Date().toISOString(),
                 message: {
                   subject: "Cancelación de Servicio - Monaguillos",
                   html: `<p>Estimado/a ${parent.name}, le notificamos que su hijo/a <strong>${user.name} ${user.lastName}</strong> ha cancelado su turno de servicio programado para la misa del <strong>${dateStr}</strong>.</p>`
@@ -1019,6 +1046,35 @@ export const db = {
     return simulatedDb.createMass(massData);
   },
   
+  getAllMasses: async () => {
+    if (isRealFirebaseEnabled() && realDb) {
+      try {
+        const querySnapshot = await getDocs(collection(realDb, "masses"));
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (e) {
+        return handleFirestoreError(e);
+      }
+    }
+    return JSON.parse(localStorage.getItem("joselito_masses") || "[]");
+  },
+
+  updateRegistrationStatus: async (regId, status) => {
+    if (isRealFirebaseEnabled() && realDb) {
+      try {
+        await updateDoc(doc(realDb, "registrations", regId), { status });
+        return;
+      } catch (e) {
+        return handleFirestoreError(e);
+      }
+    }
+    const regs = JSON.parse(localStorage.getItem("joselito_registrations") || "[]");
+    const match = regs.find(r => r.id === regId);
+    if (match) {
+      match.status = status;
+      localStorage.setItem("joselito_registrations", JSON.stringify(regs));
+    }
+  },
+
   deleteMass: async (massId) => {
     if (isRealFirebaseEnabled() && realDb) {
       try {
@@ -1089,9 +1145,31 @@ export const db = {
   getHistory: async (userUid) => {
     if (isRealFirebaseEnabled() && realDb) {
       try {
-        const q = query(collection(realDb, "history"), where("userUid", "==", userUid));
+        const q = query(collection(realDb, "registrations"), where("userUid", "==", userUid));
         const snap = await getDocs(q);
-        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const now = new Date();
+        const registrations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        return registrations.map(reg => {
+          const [year, month, day] = reg.date.split("-").map(Number);
+          const [hour, minute] = (reg.massTime || "00:00").split(":").map(Number);
+          const massDate = new Date(year, month - 1, day, hour, minute);
+          
+          return {
+            id: reg.id,
+            title: reg.massTitle || "Misa",
+            location: reg.massLocation || "Templo Parroquial",
+            date: reg.date,
+            time: reg.massTime || "",
+            role: reg.userRole || "Monaguillo",
+            status: reg.status === "attended" ? "Cumplido" : 
+                    reg.status === "cancelled" ? "Cancelado" : 
+                    reg.status === "checked-in" ? "Asistido (Check-in)" : "Faltó (No asistió)",
+            massDate
+          };
+        })
+        .filter(hist => hist.massDate < now)
+        .sort((a, b) => b.massDate - a.massDate);
       } catch (e) {
         return handleFirestoreError(e);
       }
@@ -1103,7 +1181,45 @@ export const db = {
     if (isRealFirebaseEnabled() && realDb) {
       try {
         const snap = await getDoc(doc(realDb, "users", uid));
-        return snap.exists() ? { uid, ...snap.data() } : null;
+        if (!snap.exists()) return null;
+        const userData = snap.data();
+        
+        // Fetch all registrations to calculate stats dynamically
+        const q = query(collection(realDb, "registrations"), where("userUid", "==", uid));
+        const qSnap = await getDocs(q);
+        const regs = qSnap.docs.map(d => d.data());
+        
+        const now = new Date();
+        const pastRegs = regs.filter(reg => {
+          const [year, month, day] = reg.date.split("-").map(Number);
+          const [hour, minute] = (reg.massTime || "00:00").split(":").map(Number);
+          const massDate = new Date(year, month - 1, day, hour, minute);
+          return massDate < now;
+        });
+        
+        const servedCount = pastRegs.filter(r => r.status === "attended").length;
+        const totalExpected = pastRegs.filter(r => r.status !== "cancelled").length;
+        const attendedOrCheckedIn = pastRegs.filter(r => r.status === "attended" || r.status === "checked-in").length;
+        
+        let punctuality = 100;
+        if (totalExpected > 0) {
+          const fancyPercent = (attendedOrCheckedIn / totalExpected) * 100;
+          punctuality = Math.round(fancyPercent);
+        }
+        
+        let level = 1;
+        if (servedCount > 50) level = 5;
+        else if (servedCount > 30) level = 4;
+        else if (servedCount > 15) level = 3;
+        else if (servedCount > 5) level = 2;
+        
+        return {
+          uid,
+          ...userData,
+          servedCount,
+          punctuality,
+          level
+        };
       } catch (e) {
         return handleFirestoreError(e);
       }
@@ -1190,6 +1306,29 @@ export const db = {
       }
     }
     return simulatedDb.createUserProfile(uid, email, name, lastName, role, childEmails);
+  },
+
+  getEmailLogs: async () => {
+    if (isRealFirebaseEnabled() && realDb) {
+      try {
+        const q = query(collection(realDb, "mail"), orderBy("timestamp", "desc"), limit(50));
+        const snap = await getDocs(q);
+        return snap.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            to: data.to,
+            subject: data.message?.subject || "",
+            bodyHtml: data.message?.html || "",
+            timestamp: data.timestamp || new Date().toISOString()
+          };
+        });
+      } catch (e) {
+        console.error("Error fetching email logs:", e);
+        return [];
+      }
+    }
+    return [];
   }
 };
 
