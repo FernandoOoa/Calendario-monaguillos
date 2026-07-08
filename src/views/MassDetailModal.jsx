@@ -177,7 +177,7 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
             <div className="flex justify-between items-center mb-3.5">
               <h2 className="text-base font-bold text-white">Servidores Asignados</h2>
               <span className="text-xs font-bold bg-white/10 border border-white/10 px-2.5 py-1 rounded-full text-white">
-                {registrations.length} Acólito(s)
+                {registrations.length} {mass.serversRequired ? `de ${mass.serversRequired}` : ""} Acólito(s)
               </span>
             </div>
             

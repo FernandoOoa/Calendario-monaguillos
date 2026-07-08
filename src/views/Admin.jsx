@@ -14,6 +14,7 @@ export default function Admin({ user }) {
   const [massType, setMassType] = useState("ORDINARIA");
   const [massNotes, setMassNotes] = useState("");
   const [massIsRecurring, setMassIsRecurring] = useState(true);
+  const [massServersRequired, setMassServersRequired] = useState(3);
 
   // Manage Mass states
   const [massesList, setMassesList] = useState([]);
@@ -25,6 +26,7 @@ export default function Admin({ user }) {
   const [editType, setEditType] = useState("ORDINARIA");
   const [editNotes, setEditNotes] = useState("");
   const [editIsRecurring, setEditIsRecurring] = useState(true);
+  const [editServersRequired, setEditServersRequired] = useState(3);
 
   // Attendance Inspector states
   const [inspectDate, setInspectDate] = useState("");
@@ -153,13 +155,15 @@ export default function Admin({ user }) {
         specificDate: finalSpecificDate,
         type: massType,
         notes: massNotes,
-        isRecurring: massIsRecurring
+        isRecurring: massIsRecurring,
+        serversRequired: Number(massServersRequired)
       });
       setSuccessMsg("¡Misa/Evento creado con éxito en el calendario!");
       setMassTitle("");
       setMassTime("");
       setMassNotes("");
       setMassSpecificDate("");
+      setMassServersRequired(3);
       loadAdminData();
       loadInspectMasses();
       
@@ -193,6 +197,7 @@ export default function Admin({ user }) {
     setEditType(mass.type);
     setEditNotes(mass.notes || "");
     setEditIsRecurring(mass.isRecurring !== false);
+    setEditServersRequired(mass.serversRequired || 3);
   };
 
   const handleSaveEditMass = async (e) => {
@@ -224,7 +229,8 @@ export default function Admin({ user }) {
         specificDate: finalSpecificDate,
         type: editType,
         notes: editNotes,
-        isRecurring: editIsRecurring
+        isRecurring: editIsRecurring,
+        serversRequired: Number(editServersRequired)
       });
       setSuccessMsg("¡Misa actualizada con éxito!");
       setEditingMass(null);
@@ -449,6 +455,19 @@ export default function Admin({ user }) {
                     <option key={t} value={t} className="bg-[#1e1e1e]">{t}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-on-surface-variant mb-1 ml-1">Monaguillos Requeridos *</label>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={massServersRequired}
+                  onChange={(e) => setMassServersRequired(Number(e.target.value))}
+                  className="w-full h-11 px-4 rounded-xl bg-white/5 border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
+                />
               </div>
             </div>
 
@@ -763,6 +782,19 @@ export default function Admin({ user }) {
                       <option key={t} value={t} className="bg-[#1e1e1e]">{t}</option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-on-surface-variant mb-1 ml-1">Monaguillos Requeridos *</label>
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={editServersRequired}
+                    onChange={(e) => setEditServersRequired(Number(e.target.value))}
+                    className="w-full h-11 px-4 rounded-xl bg-white/5 border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
+                  />
                 </div>
               </div>
 

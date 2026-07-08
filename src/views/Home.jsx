@@ -217,6 +217,8 @@ export default function Home({ user, onSelectMass }) {
   const userReg = registrations.find(r => r.userUid === user.uid);
   const isUserRegistered = !!userReg;
   const isUserCheckedIn = userReg?.status === "checked-in" || userReg?.status === "attended";
+  const requiredCount = mass.serversRequired || 3;
+  const missingCount = Math.max(0, requiredCount - registrations.length);
   
   // Footprint tracker stages
   const stepInscrito = isUserRegistered;
@@ -332,61 +334,103 @@ export default function Home({ user, onSelectMass }) {
               </span>
             </h3>
 
+            {/* Missing servers alert banner */}
+            {mass.serversRequired && (
+              <div className="mb-4 p-4 rounded-2xl border text-xs font-bold flex justify-between items-center bg-white/[0.02] border-white/10">
+                <span className="text-on-surface-variant flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[18px]">group</span>
+                  Monaguillos requeridos: <span className="text-white">{mass.serversRequired}</span>
+                </span>
+                {missingCount > 0 ? (
+                  <span className="text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">warning</span>
+                    Faltan: {missingCount}
+                  </span>
+                ) : (
+                  <span className="text-green-400 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                    ¡Cupo Completo!
+                  </span>
+                )}
+              </div>
+            )}
+
             {registrations.length === 0 ? (
               <p className="text-sm text-gray-400 italic py-6 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
                 No hay monaguillos inscritos para esta celebración todavía.
               </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {registrations.map(reg => {
-                  const isCurrent = reg.userUid === user.uid;
-                  const isChecked = reg.status === "checked-in" || reg.status === "attended";
-                  
-                  return (
-                    <div
-                      key={reg.id}
-                      className={`flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all ${
-                        isCurrent
-                          ? "bg-primary/20 border-primary/40 text-white shadow-md"
-                          : "bg-white/5 border-white/10 hover:bg-white/10 text-white"
-                      }`}
-                    >
-                      <div className="relative">
-                        {reg.userPhotoURL ? (
-                          <img
-                            src={reg.userPhotoURL}
-                            alt={reg.userName}
-                            referrerPolicy="no-referrer"
-                            className="w-11 h-11 rounded-full object-cover"
-                          />
+                {(() => {
+                  const sortedRegs = [...registrations].sort((a, b) => a.id.localeCompare(b.id));
+                  return sortedRegs.map((reg, idx) => {
+                    const isCurrent = reg.userUid === user.uid;
+                    const isChecked = reg.status === "checked-in" || reg.status === "attended";
+                    const orderNum = idx + 1;
+                    const isExtra = mass.serversRequired && orderNum > Number(mass.serversRequired);
+                    
+                    return (
+                      <div
+                        key={reg.id}
+                        className={`flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all ${
+                          isCurrent
+                            ? "bg-primary/20 border-primary/40 text-white shadow-md"
+                            : isExtra
+                              ? "bg-amber-500/5 border-amber-500/20 text-white"
+                              : "bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                        }`}
+                      >
+                        {/* Order label badge */}
+                        <span className={`text-[10px] font-extrabold w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                          isExtra 
+                            ? "bg-amber-500/20 text-amber-400" 
+                            : "bg-primary/20 text-primary"
+                        }`}>
+                          {orderNum}º
+                        </span>
+
+                        <div className="relative">
+                          {reg.userPhotoURL ? (
+                            <img
+                              src={reg.userPhotoURL}
+                              alt={reg.userName}
+                              referrerPolicy="no-referrer"
+                              className="w-9 h-9 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-extrabold uppercase">
+                              {reg.userName.charAt(0)}
+                            </div>
+                          )}
+                          {isCurrent && (
+                            <div className="absolute -bottom-1 -right-1 bg-primary text-white text-[8px] rounded-full px-1 py-0.5 leading-none font-bold scale-90">
+                              TÚ
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-white truncate">{reg.userName}</p>
+                          {isExtra && (
+                            <span className="text-[9px] text-amber-400 font-extrabold uppercase tracking-wide block">
+                              EXTRA / SUPLENTE
+                            </span>
+                          )}
+                        </div>
+
+                        {isChecked ? (
+                          <span className="material-symbols-outlined text-green-400 text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                            verified
+                          </span>
                         ) : (
-                          <div className="w-11 h-11 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-extrabold uppercase">
-                            {reg.userName.charAt(0)}
-                          </div>
-                        )}
-                        {isCurrent && (
-                          <div className="absolute -bottom-1 -right-1 bg-primary text-white text-[9px] rounded-full px-1.5 py-0.5 leading-none font-bold scale-90">
-                            TÚ
-                          </div>
+                          <span className="material-symbols-outlined text-gray-400 text-xl">
+                            schedule
+                          </span>
                         )}
                       </div>
-
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-white truncate">{reg.userName}</p>
-                      </div>
-
-                      {isChecked ? (
-                        <span className="material-symbols-outlined text-green-400 text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                          verified
-                        </span>
-                      ) : (
-                        <span className="material-symbols-outlined text-gray-400 text-xl">
-                          schedule
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             )}
           </div>
