@@ -434,8 +434,15 @@ const simulatedDb = {
     const masses = getStorageItem("joselito_masses", []);
     const regs = getStorageItem("joselito_registrations", []);
     
-    // Filter masses by day of week
-    const filteredMasses = masses.filter(m => m.dayOfWeek === dayOfWeek);
+    // Filter masses:
+    // 1) if it has a specificDate, it must match dateStr.
+    // 2) otherwise, it matches the day of the week.
+    const filteredMasses = masses.filter(m => {
+      if (m.specificDate) {
+        return m.specificDate === dateStr;
+      }
+      return m.dayOfWeek === dayOfWeek;
+    });
     
     // Attach current registrations to each mass for this date
     return filteredMasses.map(mass => {
@@ -566,6 +573,16 @@ const simulatedDb = {
     masses.push(newMass);
     setStorageItem("joselito_masses", masses);
     return newMass;
+  },
+
+  updateMass: async (massId, massData) => {
+    const masses = getStorageItem("joselito_masses", []);
+    const idx = masses.findIndex(m => m.id === massId);
+    if (idx !== -1) {
+      masses[idx] = { ...masses[idx], ...massData };
+      setStorageItem("joselito_masses", masses);
+      return masses[idx];
+    }
   },
   
   deleteMass: async (massId) => {
@@ -855,9 +872,32 @@ export const db = {
   getMassesForDay: async (dayOfWeek, dateStr) => {
     if (isRealFirebaseEnabled() && realDb) {
       try {
-        const qMasses = query(collection(realDb, "masses"), where("dayOfWeek", "==", dayOfWeek));
-        const massSnap = await getDocs(qMasses);
-        const masses = massSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const qRecurring = query(
+          collection(realDb, "masses"), 
+          where("dayOfWeek", "==", dayOfWeek)
+        );
+        const qSpecific = query(
+          collection(realDb, "masses"), 
+          where("specificDate", "==", dateStr)
+        );
+        
+        const [recSnap, specSnap] = await Promise.all([
+          getDocs(qRecurring),
+          getDocs(qSpecific)
+        ]);
+        
+        const recMasses = recSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const specMasses = specSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        const merged = [...recMasses, ...specMasses];
+        const uniqueMap = new Map();
+        merged.forEach(m => {
+          if (m.specificDate && m.specificDate !== dateStr) {
+            return;
+          }
+          uniqueMap.set(m.id, m);
+        });
+        const masses = Array.from(uniqueMap.values());
         
         const qRegs = query(collection(realDb, "registrations"), where("date", "==", dateStr));
         const regSnap = await getDocs(qRegs);
@@ -1044,6 +1084,18 @@ export const db = {
       }
     }
     return simulatedDb.createMass(massData);
+  },
+
+  updateMass: async (massId, massData) => {
+    if (isRealFirebaseEnabled() && realDb) {
+      try {
+        await updateDoc(doc(realDb, "masses", massId), massData);
+        return { id: massId, ...massData };
+      } catch (e) {
+        return handleFirestoreError(e);
+      }
+    }
+    return simulatedDb.updateMass(massId, massData);
   },
   
   getAllMasses: async () => {

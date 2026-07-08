@@ -10,12 +10,21 @@ export default function Admin({ user }) {
   const [massTitle, setMassTitle] = useState("");
   const [massTime, setMassTime] = useState("");
   const [massDayOfWeek, setMassDayOfWeek] = useState(0); // 0 = Sunday
+  const [massSpecificDate, setMassSpecificDate] = useState("");
   const [massType, setMassType] = useState("ORDINARIA");
   const [massNotes, setMassNotes] = useState("");
   const [massIsRecurring, setMassIsRecurring] = useState(true);
 
   // Manage Mass states
   const [massesList, setMassesList] = useState([]);
+  const [editingMass, setEditingMass] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editDayOfWeek, setEditDayOfWeek] = useState(0);
+  const [editSpecificDate, setEditSpecificDate] = useState("");
+  const [editType, setEditType] = useState("ORDINARIA");
+  const [editNotes, setEditNotes] = useState("");
+  const [editIsRecurring, setEditIsRecurring] = useState(true);
 
   // Attendance Inspector states
   const [inspectDate, setInspectDate] = useState("");
@@ -124,19 +133,33 @@ export default function Admin({ user }) {
       return;
     }
 
+    let finalDayOfWeek = Number(massDayOfWeek);
+    let finalSpecificDate = null;
+    if (!massIsRecurring) {
+      if (!massSpecificDate) {
+        setErrorMsg("Por favor selecciona una fecha específica para el evento.");
+        return;
+      }
+      const dateObj = new Date(massSpecificDate + "T00:00:00");
+      finalDayOfWeek = dateObj.getDay();
+      finalSpecificDate = massSpecificDate;
+    }
+
     try {
       await db.createMass({
         title: massTitle,
         time: massTime,
-        dayOfWeek: Number(massDayOfWeek),
+        dayOfWeek: finalDayOfWeek,
+        specificDate: finalSpecificDate,
         type: massType,
         notes: massNotes,
         isRecurring: massIsRecurring
       });
-      setSuccessMsg("¡Misa creada con éxito en el calendario!");
+      setSuccessMsg("¡Misa/Evento creado con éxito en el calendario!");
       setMassTitle("");
       setMassTime("");
       setMassNotes("");
+      setMassSpecificDate("");
       loadAdminData();
       loadInspectMasses();
       
@@ -161,6 +184,58 @@ export default function Admin({ user }) {
     }
   };
 
+  const startEditMass = (mass) => {
+    setEditingMass(mass);
+    setEditTitle(mass.title);
+    setEditTime(mass.time);
+    setEditDayOfWeek(mass.dayOfWeek);
+    setEditSpecificDate(mass.specificDate || "");
+    setEditType(mass.type);
+    setEditNotes(mass.notes || "");
+    setEditIsRecurring(mass.isRecurring !== false);
+  };
+
+  const handleSaveEditMass = async (e) => {
+    e.preventDefault();
+    setSuccessMsg("");
+    setErrorMsg("");
+    if (!editTitle || !editTime) {
+      setErrorMsg("Completa los campos obligatorios.");
+      return;
+    }
+
+    let finalDayOfWeek = Number(editDayOfWeek);
+    let finalSpecificDate = null;
+    if (!editIsRecurring) {
+      if (!editSpecificDate) {
+        setErrorMsg("Por favor selecciona una fecha específica para el evento.");
+        return;
+      }
+      const dateObj = new Date(editSpecificDate + "T00:00:00");
+      finalDayOfWeek = dateObj.getDay();
+      finalSpecificDate = editSpecificDate;
+    }
+
+    try {
+      await db.updateMass(editingMass.id, {
+        title: editTitle,
+        time: editTime,
+        dayOfWeek: finalDayOfWeek,
+        specificDate: finalSpecificDate,
+        type: editType,
+        notes: editNotes,
+        isRecurring: editIsRecurring
+      });
+      setSuccessMsg("¡Misa actualizada con éxito!");
+      setEditingMass(null);
+      loadAdminData();
+      loadInspectMasses();
+      window.dispatchEvent(new Event("mass-state-updated"));
+    } catch (err) {
+      setErrorMsg("Error al actualizar la misa.");
+    }
+  };
+
   // Toggle server attendance manually (Admin control)
   const handleToggleAttendanceStatus = async (reg) => {
     try {
@@ -176,6 +251,73 @@ export default function Admin({ user }) {
       console.error(e);
     }
   };
+
+  const getGroupedMasses = () => {
+    const dayOrder = [1, 2, 3, 4, 5, 6, 0]; // L, M, M, J, V, S, D
+    const grouped = [];
+
+    dayOrder.forEach(dayNum => {
+      const dayMasses = massesList.filter(m => m.dayOfWeek === dayNum);
+      if (dayMasses.length === 0) return;
+
+      // Sort by time ascending
+      const sorted = [...dayMasses].sort((a, b) => a.time.localeCompare(b.time));
+
+      // Separate into morning and afternoon
+      const morning = sorted.filter(m => m.time < "12:00");
+      const afternoon = sorted.filter(m => m.time >= "12:00");
+
+      grouped.push({
+        dayNum,
+        dayLabel: daysOfWeekNames.find(d => d.value === dayNum)?.label || "",
+        morning,
+        afternoon
+      });
+    });
+
+    return grouped;
+  };
+
+  const renderMassRow = (mass) => (
+    <div key={mass.id} className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/[0.08] border border-white/10 rounded-xl transition-all">
+      <div className="flex flex-col gap-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-xs text-on-surface truncate">{mass.title}</span>
+          <span className="text-[9px] bg-primary/20 text-primary border border-primary/10 px-1.5 py-0.2 rounded font-bold uppercase shrink-0">
+            {mass.type}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-[10px] text-on-surface-variant">
+          <span className="font-bold text-primary">{formatTimeToAMPM(mass.time)}</span>
+          <span>•</span>
+          <span className={`font-bold ${
+            mass.isRecurring 
+              ? "text-green-400" 
+              : "text-orange-400"
+          }`}>
+            {mass.isRecurring ? "SEMANAL" : `ÚNICA (${mass.specificDate})`}
+          </span>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-1 shrink-0">
+        <button
+          onClick={() => startEditMass(mass)}
+          className="p-2 text-on-surface-variant hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+          title="Editar Misa"
+        >
+          <span className="material-symbols-outlined text-[18px]">edit</span>
+        </button>
+        <button
+          onClick={() => handleDeleteMass(mass.id)}
+          className="p-2 text-error hover:bg-error-container/20 rounded-lg transition-colors"
+          title="Eliminar Misa"
+        >
+          <span className="material-symbols-outlined text-[18px]">delete</span>
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex-grow py-8 max-w-7xl mx-auto w-full px-container-padding-mobile md:px-container-padding-desktop font-sans pb-24 md:pb-8">
@@ -270,18 +412,31 @@ export default function Admin({ user }) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-on-surface-variant mb-1 ml-1">Día de la Semana</label>
-                <select
-                  value={massDayOfWeek}
-                  onChange={(e) => setMassDayOfWeek(Number(e.target.value))}
-                  className="w-full h-11 px-4 rounded-xl bg-[#1e1e1e] border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
-                >
-                  {daysOfWeekNames.map(d => (
-                    <option key={d.value} value={d.value} className="bg-[#1e1e1e]">{d.label}</option>
-                  ))}
-                </select>
-              </div>
+              {massIsRecurring ? (
+                <div>
+                  <label className="block text-on-surface-variant mb-1 ml-1">Día de la Semana</label>
+                  <select
+                    value={massDayOfWeek}
+                    onChange={(e) => setMassDayOfWeek(Number(e.target.value))}
+                    className="w-full h-11 px-4 rounded-xl bg-[#1e1e1e] border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
+                  >
+                    {daysOfWeekNames.map(d => (
+                      <option key={d.value} value={d.value} className="bg-[#1e1e1e]">{d.label}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-on-surface-variant mb-1 ml-1">Fecha del Evento *</label>
+                  <input
+                    required
+                    type="date"
+                    value={massSpecificDate}
+                    onChange={(e) => setMassSpecificDate(e.target.value)}
+                    className="w-full h-11 px-4 rounded-xl bg-white/5 border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-on-surface-variant mb-1 ml-1">Tipo de Misa</label>
@@ -339,55 +494,56 @@ export default function Admin({ user }) {
             Misas Programadas Registradas
           </h2>
           
-          <div className="overflow-x-auto no-scrollbar">
+          <div className="space-y-6">
             {massesList.length === 0 ? (
               <p className="text-xs text-on-surface-variant/70 italic text-center py-8">No hay misas creadas.</p>
             ) : (
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-white/10 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                    <th className="py-3 px-2">Celebración / Tipo</th>
-                    <th className="py-3 px-2">Día de Semana</th>
-                    <th className="py-3 px-2">Hora</th>
-                    <th className="py-3 px-2">Recurrente</th>
-                    <th className="py-3 px-2 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {massesList.map((mass) => (
-                    <tr key={mass.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-3.5 px-2">
-                        <p className="font-bold text-on-surface">{mass.title}</p>
-                        <span className="text-[9px] bg-primary/20 text-primary border border-primary/10 px-2 py-0.5 rounded font-bold uppercase">
-                          {mass.type}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-2 font-semibold">
-                        {daysOfWeekNames.find(d => d.value === mass.dayOfWeek)?.label}
-                      </td>
-                      <td className="py-3.5 px-2 font-bold text-primary">{formatTimeToAMPM(mass.time)}</td>
-                      <td className="py-3.5 px-2">
-                        <span className={`px-2 py-0.5 rounded font-bold text-[9px] ${
-                          mass.isRecurring 
-                            ? "bg-green-500/10 text-green-400 border border-green-500/20" 
-                            : "bg-orange-500/10 text-orange-400 border border-orange-500/20"
-                        }`}>
-                          {mass.isRecurring ? "SEMANAL" : "ÚNICA"}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-2 text-right">
-                        <button
-                          onClick={() => handleDeleteMass(mass.id)}
-                          className="p-2 text-error hover:bg-error-container/20 rounded-lg transition-colors"
-                          title="Eliminar Misa"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              getGroupedMasses().map(({ dayNum, dayLabel, morning, afternoon }) => (
+                <div key={dayNum} className="border border-white/5 bg-white/[0.01] rounded-2xl p-4 md:p-6 space-y-4 shadow-sm">
+                  {/* Day Title */}
+                  <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                    <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px]">calendar_today</span>
+                      {dayLabel}
+                    </h3>
+                    <span className="text-[10px] bg-white/5 text-on-surface-variant px-2.5 py-0.5 rounded-full font-bold">
+                      {(morning.length + afternoon.length)} { (morning.length + afternoon.length) === 1 ? "Misa" : "Misas" }
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Morning Subsection */}
+                    <div>
+                      <h4 className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-3 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px] text-amber-400">light_mode</span>
+                        Mañana (AM)
+                      </h4>
+                      {morning.length === 0 ? (
+                        <p className="text-xs text-on-surface-variant/40 italic py-2">No hay misas en la mañana.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {morning.map(mass => renderMassRow(mass))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Afternoon Subsection */}
+                    <div>
+                      <h4 className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-3 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px] text-indigo-400">dark_mode</span>
+                        Tarde / Noche (PM)
+                      </h4>
+                      {afternoon.length === 0 ? (
+                        <p className="text-xs text-on-surface-variant/40 italic py-2">No hay misas en la tarde.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {afternoon.map(mass => renderMassRow(mass))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
@@ -525,6 +681,131 @@ export default function Admin({ user }) {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Edit Mass Modal Overlay */}
+      {editingMass && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-xl p-6 md:p-8 rounded-3xl border border-white/10 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setEditingMass(null)}
+              className="absolute top-4 right-4 text-on-surface-variant hover:text-white transition-colors"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            
+            <h2 className="text-base font-bold text-on-surface mb-6 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-primary">edit</span>
+              Editar Misa o Evento Parroquial
+            </h2>
+            
+            <form onSubmit={handleSaveEditMass} className="space-y-4 text-xs font-semibold text-left">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-on-surface-variant mb-1 ml-1">Título de la Celebración *</label>
+                  <input
+                    required
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full h-11 px-4 rounded-xl bg-white/5 border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-on-surface-variant mb-1 ml-1">Hora de Inicio *</label>
+                  <input
+                    required
+                    type="time"
+                    value={editTime}
+                    onChange={(e) => setEditTime(e.target.value)}
+                    className="w-full h-11 px-4 rounded-xl bg-white/5 border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {editIsRecurring ? (
+                  <div>
+                    <label className="block text-on-surface-variant mb-1 ml-1">Día de la Semana</label>
+                    <select
+                      value={editDayOfWeek}
+                      onChange={(e) => setEditDayOfWeek(Number(e.target.value))}
+                      className="w-full h-11 px-4 rounded-xl bg-[#1e1e1e] border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
+                    >
+                      {daysOfWeekNames.map(d => (
+                        <option key={d.value} value={d.value} className="bg-[#1e1e1e]">{d.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-on-surface-variant mb-1 ml-1">Fecha del Evento *</label>
+                    <input
+                      required
+                      type="date"
+                      value={editSpecificDate}
+                      onChange={(e) => setEditSpecificDate(e.target.value)}
+                      className="w-full h-11 px-4 rounded-xl bg-white/5 border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-on-surface-variant mb-1 ml-1">Tipo de Misa</label>
+                  <select
+                    value={editType}
+                    onChange={(e) => setEditType(e.target.value)}
+                    className="w-full h-11 px-4 rounded-xl bg-[#1e1e1e] border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs"
+                  >
+                    {massTypesList.map(t => (
+                      <option key={t} value={t} className="bg-[#1e1e1e]">{t}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-on-surface-variant mb-1 ml-1">Notas Litúrgicas / Requisitos</label>
+                <textarea
+                  rows="3"
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs leading-relaxed"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 py-2">
+                <input
+                  type="checkbox"
+                  id="editIsRecurring"
+                  checked={editIsRecurring}
+                  onChange={(e) => setEditIsRecurring(e.target.checked)}
+                  className="w-4 h-4 rounded border-white/10 bg-white/5 text-primary focus:ring-primary"
+                />
+                <label htmlFor="editIsRecurring" className="text-xs text-on-surface-variant cursor-pointer select-none">
+                  Programar automáticamente todas las semanas (Misa Recurrente)
+                </label>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingMass(null)}
+                  className="flex-1 h-12 bg-white/5 hover:bg-white/10 border border-white/10 text-on-surface font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center"
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

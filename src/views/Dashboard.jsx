@@ -11,6 +11,7 @@ export default function Dashboard({ user, onSelectMass }) {
   const [masses, setMasses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [scheduledDays, setScheduledDays] = useState(new Set());
+  const [allMassesList, setAllMassesList] = useState([]);
 
   // Generate 7 days for the weekly view
   const generateWeek = (refDate) => {
@@ -98,7 +99,8 @@ export default function Dashboard({ user, onSelectMass }) {
   const loadScheduledDays = async () => {
     try {
       const list = await db.getAllMasses();
-      const days = new Set(list.map(m => m.dayOfWeek));
+      setAllMassesList(list);
+      const days = new Set(list.filter(m => m.isRecurring !== false).map(m => m.dayOfWeek));
       setScheduledDays(days);
     } catch (e) {
       console.error("Error loading scheduled days:", e);
@@ -260,6 +262,18 @@ export default function Dashboard({ user, onSelectMass }) {
 
         {/* Real Calendar Grid */}
         <div className="glass-card rounded-3xl p-4 md:p-6 mb-8 overflow-hidden">
+          {/* Calendar Legend */}
+          <div className="flex gap-4 items-center justify-end mb-4 px-1 text-[10px] font-bold text-on-surface-variant">
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+              <span>Misa Recurrente</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[12px] text-amber-400">star</span>
+              <span>Evento Especial / Único</span>
+            </div>
+          </div>
+
           {/* Days of week header */}
           <div className="grid grid-cols-7 gap-2 mb-3 text-center">
             {dayNames.map((name, idx) => (
@@ -280,20 +294,31 @@ export default function Dashboard({ user, onSelectMass }) {
               const isSelected = selectedDate && selectedDate.dateStr === day.dateStr;
               const isToday = getLocalDateString(new Date()) === day.dateStr;
               
-              // Mass schedule indicator rule (checks if this day of the week has a mass in the database)
-              const hasMass = scheduledDays.has(day.dayOfWeek);
+              const hasRecurringMass = scheduledDays.has(day.dayOfWeek);
+              const hasSpecialMass = allMassesList.some(m => m.isRecurring === false && m.specificDate === day.dateStr);
+
+              // Styled colors to distinguish special events
+              const cellBorderClass = isSelected
+                ? "border-primary"
+                : hasSpecialMass
+                  ? "border-amber-500/60 shadow-[inset_0_0_8px_rgba(245,158,11,0.15)]"
+                  : isToday
+                    ? "border-secondary/50"
+                    : "border-white/5";
+
+              const cellBgClass = isSelected
+                ? "bg-primary/20 text-white"
+                : isToday
+                  ? "bg-white/5 text-white font-bold"
+                  : hasSpecialMass
+                    ? "bg-amber-500/5 text-gray-200 hover:bg-amber-500/10"
+                    : "bg-white/[0.02] text-gray-300 hover:bg-white/5";
 
               return (
                 <button
                   key={day.dateStr}
                   onClick={() => setSelectedDate(day)}
-                  className={`aspect-square md:aspect-auto md:h-20 rounded-2xl p-2 flex flex-col items-center md:items-start justify-between transition-all border relative ${
-                    isSelected
-                      ? "bg-primary/20 border-primary shadow-lg text-white"
-                      : isToday
-                        ? "bg-white/5 border-secondary/50 text-white font-bold"
-                        : "bg-white/[0.02] border-white/5 text-gray-300 hover:bg-white/5"
-                  } ${!day.isCurrentMonth ? "opacity-30" : ""}`}
+                  className={`aspect-square md:aspect-auto md:h-20 rounded-2xl p-2 flex flex-col items-center md:items-start justify-between transition-all border relative ${cellBorderClass} ${cellBgClass} ${!day.isCurrentMonth ? "opacity-30" : ""}`}
                 >
                   {/* Day number */}
                   <span className={`text-xs md:text-sm font-extrabold ${
@@ -302,12 +327,15 @@ export default function Dashboard({ user, onSelectMass }) {
                     {day.dayNum}
                   </span>
 
-                  {/* Dot indicator (mass schedule) */}
-                  <div className="flex items-center gap-1 justify-center md:justify-start w-full">
-                    {hasMass && (
+                  {/* Indicators */}
+                  <div className="flex items-center gap-1 justify-center md:justify-start w-full flex-wrap">
+                    {hasRecurringMass && (
                       <div className={`w-1.5 h-1.5 rounded-full ${
                         isSelected ? "bg-primary" : isToday ? "bg-secondary" : "bg-primary"
                       }`} />
+                    )}
+                    {hasSpecialMass && (
+                      <span className="material-symbols-outlined text-[13px] text-amber-400 animate-pulse font-bold" title="Evento Especial / Único">star</span>
                     )}
                     {isToday && (
                       <span className="hidden md:inline text-[9px] uppercase font-bold text-secondary">
