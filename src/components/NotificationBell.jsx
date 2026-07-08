@@ -93,7 +93,15 @@ export default function NotificationBell({ user }) {
               notifications.map((notif) => (
                 <div
                   key={notif.id}
-                  className={`p-4 transition-colors flex gap-3 ${notif.read ? "bg-[#1c1c1c]" : "bg-white/[0.03]"}`}
+                  onClick={() => {
+                    if (notif.massId && notif.targetDate) {
+                      window.dispatchEvent(new CustomEvent("open-mass-detail", {
+                        detail: { massId: notif.massId, date: notif.targetDate }
+                      }));
+                      setIsOpen(false);
+                    }
+                  }}
+                  className={`p-4 transition-colors flex gap-3 ${notif.read ? "bg-[#1c1c1c]" : "bg-white/[0.03]"} ${notif.massId ? "cursor-pointer hover:bg-white/[0.06]" : ""}`}
                 >
                   {/* Status Icon */}
                   <span className={`material-symbols-outlined text-xl mt-0.5 ${

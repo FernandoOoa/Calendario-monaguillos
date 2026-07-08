@@ -430,7 +430,17 @@ export default function Profile({ user, onUpdateUser }) {
                 </div>
               ) : (
                 notifications.map((notif) => (
-                  <div key={notif.id} className="p-3 bg-white/[0.02] rounded-xl border border-white/5 flex gap-2">
+                  <div
+                    key={notif.id}
+                    onClick={() => {
+                      if (notif.massId && notif.targetDate) {
+                        window.dispatchEvent(new CustomEvent("open-mass-detail", {
+                          detail: { massId: notif.massId, date: notif.targetDate }
+                        }));
+                      }
+                    }}
+                    className={`p-3 bg-white/[0.02] rounded-xl border border-white/5 flex gap-2 ${notif.massId ? "cursor-pointer hover:bg-white/[0.05]" : ""}`}
+                  >
                     <span className={`material-symbols-outlined text-lg ${notif.type === "error" ? "text-error" :
                         notif.type === "warning" ? "text-secondary" : "text-primary"
                       }`}>

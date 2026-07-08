@@ -316,17 +316,6 @@ export default function Dashboard({ user, onSelectMass }) {
             <h1 className="font-sans text-2xl md:text-3xl font-bold text-primary mb-1">Calendario de Turnos</h1>
             <p className="text-sm text-on-surface-variant">Gestiona tus turnos y asiste a la comunidad en el servicio del altar.</p>
           </div>
-          <div className="flex items-center gap-3">
-            {user.role === "monaguillo" && (
-              <button
-                onClick={handleRequestSwap}
-                className="bg-tertiary-fixed text-on-tertiary-fixed px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm hover:scale-102 transition-all active:scale-95 border border-outline-variant/30"
-              >
-                <span className="material-symbols-outlined text-[18px]">swap_horiz</span>
-                SOLICITAR CAMBIO
-              </button>
-            )}
-          </div>
         </div>
 
         {/* Calendar Navigation & View Toggles */}

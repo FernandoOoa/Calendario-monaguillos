@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import CustomAlertModal from "./components/CustomAlertModal";
 import Navigation from "./components/Navigation";
-import { auth } from "./services/firebase";
+import { auth, db } from "./services/firebase";
 import Admin from "./views/Admin";
 import Auth from "./views/Auth";
 import Dashboard from "./views/Dashboard";
@@ -33,6 +33,23 @@ export default function App() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const handleOpenDetail = async (e) => {
+      const { massId, date } = e.detail;
+      try {
+        const allMasses = await db.getAllMasses();
+        const mass = allMasses.find(m => m.id === massId);
+        if (mass) {
+          handleSelectMass(mass, date);
+        }
+      } catch (err) {
+        console.error("Error opening mass detail from event:", err);
+      }
+    };
+    window.addEventListener("open-mass-detail", handleOpenDetail);
+    return () => window.removeEventListener("open-mass-detail", handleOpenDetail);
   }, []);
 
   const handleAuthSuccess = (authenticatedUser) => {

@@ -1328,6 +1328,10 @@ export const db = {
           status: "swap_requested"
         });
 
+        const regSnap = await getDoc(doc(realDb, "registrations", regId));
+        const regData = regSnap.exists() ? regSnap.data() : {};
+        const massId = regData.massId || "";
+
         // Notify other monaguillos
         const querySnapshot = await getDocs(collection(realDb, "users"));
         const otherMonaguillos = querySnapshot.docs
@@ -1341,7 +1345,9 @@ export const db = {
             title: "Cambio de Turno Disponible",
             content: `${userName} solicita cambio para la Misa: ${massTitle} el ${dateStr} a las ${timeStr}.`,
             date: new Date().toISOString(),
-            read: false
+            read: false,
+            massId,
+            targetDate: dateStr
           });
         }
         return;
@@ -1351,6 +1357,7 @@ export const db = {
     } else {
       const regs = getStorageItem("joselito_registrations", []);
       const reg = regs.find(r => r.id === regId);
+      const massId = reg ? reg.massId : "";
       if (reg) {
         reg.status = "swap_requested";
         setStorageItem("joselito_registrations", regs);
@@ -1370,7 +1377,9 @@ export const db = {
           title: "Cambio de Turno Disponible",
           content: `${userName} solicita cambio para la Misa: ${massTitle} el ${dateStr} a las ${timeStr}.`,
           date: new Date().toISOString(),
-          read: false
+          read: false,
+          massId,
+          targetDate: dateStr
         });
       }
       setStorageItem("joselito_notifications", notifs);
@@ -1389,6 +1398,10 @@ export const db = {
           status: "pending"
         });
 
+        const regSnap = await getDoc(doc(realDb, "registrations", regId));
+        const regData = regSnap.exists() ? regSnap.data() : {};
+        const massId = regData.massId || "";
+
         // Notify the original monaguillo
         await addDoc(collection(realDb, "notifications"), {
           recipientUid: originalUserUid,
@@ -1396,7 +1409,9 @@ export const db = {
           title: "Cambio Aceptado",
           content: `${userName} aceptó tu cambio de turno para la Misa: ${massTitle} el ${dateStr}.`,
           date: new Date().toISOString(),
-          read: false
+          read: false,
+          massId,
+          targetDate: dateStr
         });
         return;
       } catch (e) {
@@ -1405,6 +1420,7 @@ export const db = {
     } else {
       const regs = getStorageItem("joselito_registrations", []);
       const reg = regs.find(r => r.id === regId);
+      const massId = reg ? reg.massId : "";
       if (reg) {
         reg.userUid = userUid;
         reg.userName = userName;
@@ -1423,7 +1439,9 @@ export const db = {
         title: "Cambio Aceptado",
         content: `${userName} aceptó tu cambio de turno para la Misa: ${massTitle} el ${dateStr}.`,
         date: new Date().toISOString(),
-        read: false
+        read: false,
+        massId,
+        targetDate: dateStr
       });
       setStorageItem("joselito_notifications", notifs);
       window.dispatchEvent(new Event("notifications-updated"));
