@@ -78,12 +78,22 @@ export default function Profile({ user, onUpdateUser }) {
     const val = e.target.checked;
     setRecurrenceConfirmed(val);
     try {
-      await db.confirmRecurrence(user.uid, val, selectedRecurringMasses);
+      const res = await db.confirmRecurrence(user.uid, val, selectedRecurringMasses);
       // Trigger user state reload in app shell
       if (onUpdateUser) {
         onUpdateUser({ ...user, activeRecurrence: val, recurringMasses: selectedRecurringMasses });
       }
       window.dispatchEvent(new Event("mass-state-updated"));
+      
+      if (val) {
+        if (res && res.error) {
+          alerts.alert(`Disponibilidad confirmada, pero hubo un problema al sincronizar: ${res.error}`, "Guardado parcial", "warning");
+        } else {
+          alerts.alert(`Disponibilidad confirmada. Se registraron ${res?.addedCount || 0} turnos recurrentes en el calendario.`, "Éxito", "success");
+        }
+      } else {
+        alerts.alert(`Disponibilidad desactivada. Se liberaron ${res?.removedCount || 0} turnos futuros del calendario.`, "Información", "info");
+      }
     } catch (err) {
       alerts.alert("Error actualizando recurrencia", "Error", "error");
     }
@@ -100,11 +110,21 @@ export default function Profile({ user, onUpdateUser }) {
     
     // Auto-save if recurrence is currently active/confirmed
     try {
-      await db.confirmRecurrence(user.uid, recurrenceConfirmed, nextSelection);
+      const res = await db.confirmRecurrence(user.uid, recurrenceConfirmed, nextSelection);
       if (onUpdateUser) {
         onUpdateUser({ ...user, activeRecurrence: recurrenceConfirmed, recurringMasses: nextSelection });
       }
       window.dispatchEvent(new Event("mass-state-updated"));
+      
+      if (recurrenceConfirmed) {
+        if (res && res.error) {
+          alerts.alert(`Horario guardado, pero hubo un error de sincronización: ${res.error}`, "Guardado parcial", "warning");
+        } else {
+          alerts.alert(`Horario recurrente actualizado. Se añadieron ${res?.addedCount || 0} y se removieron ${res?.removedCount || 0} turnos recurrentes.`, "Guardado", "success");
+        }
+      } else {
+        alerts.alert("Misa seleccionada. Activa 'Confirmar Asistencia' para programarla en el calendario.", "Guardado", "info");
+      }
     } catch (err) {
       alerts.alert("Error al actualizar la asignación de misas", "Error", "error");
     }

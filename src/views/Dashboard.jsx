@@ -187,6 +187,121 @@ export default function Dashboard({ user, onSelectMass }) {
   ];
 
   const dayNames = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
+  const sortedMasses = [...masses].sort((a, b) => a.time.localeCompare(b.time));
+  const morningMasses = sortedMasses.filter(m => m.time < "12:00");
+  const afternoonMasses = sortedMasses.filter(m => m.time >= "12:00");
+
+  const renderMassCard = (mass) => {
+    const isUserRegistered = mass.registrations?.some(r => r.userUid === user.uid);
+    const userReg = mass.registrations?.find(r => r.userUid === user.uid);
+    
+    return (
+      <div
+        key={mass.id}
+        onClick={() => onSelectMass(mass, selectedDate.dateStr)}
+        className={`group relative glass-card hover:bg-white/[0.04] rounded-3xl p-6 shadow-sm border border-white/10 hover:shadow-md transition-all duration-300 cursor-pointer border-l-4 ${
+          mass.type === "SOLEMNE" 
+            ? "border-l-primary" 
+            : mass.type === "BAUTIZO" 
+              ? "border-l-secondary" 
+              : "border-l-accent"
+        }`}
+      >
+        {/* Card Header */}
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex flex-col">
+            <span className="text-white font-extrabold text-xl">{formatTimeToAMPM(mass.time)}</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold w-fit mt-1.5 tracking-wider ${
+              mass.type === "SOLEMNE"
+                ? "bg-primary text-white"
+                : mass.type === "BAUTIZO"
+                  ? "bg-secondary text-black"
+                  : "bg-white/10 text-white"
+            }`}>
+              {mass.type}
+            </span>
+          </div>
+          <span className={`material-symbols-outlined scale-110 ${
+            mass.type === "SOLEMNE" 
+              ? "text-primary" 
+              : mass.type === "BAUTIZO" 
+                ? "text-secondary" 
+                : "text-white"
+          }`}>
+            {mass.type === "BAUTIZO" ? "water_drop" : "church"}
+          </span>
+        </div>
+
+        {/* Card Title */}
+        <h3 className="text-base font-bold text-white mb-4">{mass.title}</h3>
+        
+        {/* Altar Servers Count & Avatars */}
+        <div className="space-y-4 mb-6">
+          <div className="flex items-center gap-2 text-xs text-gray-300 font-semibold">
+            <span className="material-symbols-outlined text-[16px] text-secondary">group</span>
+            <span>{mass.registrations?.length || 0} servidores anotados</span>
+          </div>
+          
+          {mass.registrations && mass.registrations.length > 0 ? (
+            <div className="flex -space-x-2.5 overflow-hidden">
+              {mass.registrations.slice(0, 4).map((reg) => (
+                reg.userPhotoURL ? (
+                  <img
+                    key={reg.id}
+                    src={reg.userPhotoURL}
+                    alt={`${reg.userName} avatar`}
+                    referrerPolicy="no-referrer"
+                    className="w-8 h-8 rounded-full object-cover ring-2 ring-background"
+                    title={`${reg.userName} (${reg.userRole})`}
+                  />
+                ) : (
+                  <div 
+                    key={reg.id} 
+                    className="w-8 h-8 rounded-full bg-primary/20 text-primary ring-2 ring-background flex items-center justify-center text-[10px] font-bold uppercase"
+                    title={`${reg.userName} (${reg.userRole})`}
+                  >
+                    {reg.userName.charAt(0)}
+                  </div>
+                )
+              ))}
+              {mass.registrations.length > 4 && (
+                <div className="w-8 h-8 rounded-full bg-white/5 text-primary ring-2 ring-background flex items-center justify-center text-[9px] font-bold">
+                  +{mass.registrations.length - 4}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-[10px] text-gray-400 italic">Sin monaguillos registrados.</p>
+          )}
+        </div>
+
+        {/* Action Button */}
+        {user.role === "monaguillo" && (
+          <div className="mt-auto">
+            {isUserRegistered ? (
+              <div className="w-full text-center py-2.5 bg-secondary/10 text-secondary border border-secondary/20 font-bold text-xs rounded-xl flex items-center justify-center gap-1">
+                <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                {userReg.status === "checked-in" ? "ASISTENCIA CONFIRMADA" : "INSCRITO"}
+              </div>
+            ) : (
+              <button
+                onClick={(e) => handleRegister(e, mass.id)}
+                className="w-full bg-primary hover:bg-primary/95 text-white py-3 rounded-xl font-bold text-xs tracking-wider transition-colors shadow-sm active:scale-95"
+              >
+                ANOTARSE
+              </button>
+            )}
+          </div>
+        )}
+        
+        {user.role !== "monaguillo" && (
+          <button className="w-full border border-white/10 text-white py-2.5 rounded-xl font-bold text-xs hover:bg-white/5 transition-colors">
+            VER ASISTENCIA
+          </button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="flex-grow py-8 max-w-7xl mx-auto w-full px-container-padding-mobile md:px-container-padding-desktop">
@@ -375,119 +490,33 @@ export default function Dashboard({ user, onSelectMass }) {
           </div>
         </section>
       ) : (
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {masses.map((mass) => {
-            const isUserRegistered = mass.registrations?.some(r => r.userUid === user.uid);
-            const userReg = mass.registrations?.find(r => r.userUid === user.uid);
-            
-            return (
-              <div
-                key={mass.id}
-                onClick={() => onSelectMass(mass, selectedDate.dateStr)}
-                className={`group relative glass-card hover:bg-white/[0.04] rounded-3xl p-6 shadow-sm border border-white/10 hover:shadow-md transition-all duration-300 cursor-pointer border-l-4 ${
-                  mass.type === "SOLEMNE" 
-                    ? "border-l-primary" 
-                    : mass.type === "BAUTIZO" 
-                      ? "border-l-secondary" 
-                      : "border-l-accent"
-                }`}
-              >
-                {/* Card Header */}
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex flex-col">
-                    <span className="text-white font-extrabold text-xl">{formatTimeToAMPM(mass.time)}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold w-fit mt-1.5 tracking-wider ${
-                      mass.type === "SOLEMNE"
-                        ? "bg-primary text-white"
-                        : mass.type === "BAUTIZO"
-                          ? "bg-secondary text-black"
-                          : "bg-white/10 text-white"
-                    }`}>
-                      {mass.type}
-                    </span>
-                  </div>
-                  <span className={`material-symbols-outlined scale-110 ${
-                    mass.type === "SOLEMNE" 
-                      ? "text-primary" 
-                      : mass.type === "BAUTIZO" 
-                        ? "text-secondary" 
-                        : "text-white"
-                  }`}>
-                    {mass.type === "BAUTIZO" ? "water_drop" : "church"}
-                  </span>
-                </div>
-
-                {/* Card Title */}
-                <h3 className="text-base font-bold text-white mb-4">{mass.title}</h3>
-                
-                {/* Altar Servers Count & Avatars */}
-                <div className="space-y-4 mb-6">
-                  <div className="flex items-center gap-2 text-xs text-gray-300 font-semibold">
-                    <span className="material-symbols-outlined text-[16px] text-secondary">group</span>
-                    <span>{mass.registrations?.length || 0} servidores anotados</span>
-                  </div>
-                  
-                  {mass.registrations && mass.registrations.length > 0 ? (
-                    <div className="flex -space-x-2.5 overflow-hidden">
-                      {mass.registrations.slice(0, 4).map((reg) => (
-                        reg.userPhotoURL ? (
-                          <img
-                            key={reg.id}
-                            src={reg.userPhotoURL}
-                            alt={`${reg.userName} avatar`}
-                            referrerPolicy="no-referrer"
-                            className="w-8 h-8 rounded-full object-cover ring-2 ring-background"
-                            title={`${reg.userName} (${reg.userRole})`}
-                          />
-                        ) : (
-                          <div 
-                            key={reg.id} 
-                            className="w-8 h-8 rounded-full bg-primary/20 text-primary ring-2 ring-background flex items-center justify-center text-[10px] font-bold uppercase"
-                            title={`${reg.userName} (${reg.userRole})`}
-                          >
-                            {reg.userName.charAt(0)}
-                          </div>
-                        )
-                      ))}
-                      {mass.registrations.length > 4 && (
-                        <div className="w-8 h-8 rounded-full bg-white/5 text-primary ring-2 ring-background flex items-center justify-center text-[9px] font-bold">
-                          +{mass.registrations.length - 4}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-gray-400 italic">Sin monaguillos registrados.</p>
-                  )}
-                </div>
-
-                {/* Action Button */}
-                {user.role === "monaguillo" && (
-                  <div className="mt-auto">
-                    {isUserRegistered ? (
-                      <div className="w-full text-center py-2.5 bg-secondary/10 text-secondary border border-secondary/20 font-bold text-xs rounded-xl flex items-center justify-center gap-1">
-                        <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                        {userReg.status === "checked-in" ? "ASISTENCIA CONFIRMADA" : "INSCRITO"}
-                      </div>
-                    ) : (
-                      <button
-                        onClick={(e) => handleRegister(e, mass.id)}
-                        className="w-full bg-primary hover:bg-primary/95 text-white py-3 rounded-xl font-bold text-xs tracking-wider transition-colors shadow-sm active:scale-95"
-                      >
-                        ANOTARSE
-                      </button>
-                    )}
-                  </div>
-                )}
-                
-                {user.role !== "monaguillo" && (
-                  <button className="w-full border border-white/10 text-white py-2.5 rounded-xl font-bold text-xs hover:bg-white/5 transition-colors">
-                    VER ASISTENCIA
-                  </button>
-                )}
+        <div className="space-y-8">
+          {/* Morning Section */}
+          {morningMasses.length > 0 && (
+            <div>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-amber-400 text-lg">light_mode</span>
+                Mañana (AM)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {morningMasses.map(mass => renderMassCard(mass))}
               </div>
-            );
-          })}
-        </section>
+            </div>
+          )}
+
+          {/* Afternoon Section */}
+          {afternoonMasses.length > 0 && (
+            <div>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-indigo-400 text-lg">dark_mode</span>
+                Tarde / Noche (PM)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {afternoonMasses.map(mass => renderMassCard(mass))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

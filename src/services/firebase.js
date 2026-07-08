@@ -262,105 +262,185 @@ const getSimulatedTime = () => {
   return new Date();
 };
 
-const syncRecurringAssignments = (userUid) => {
-  const users = getStorageItem("joselito_users", {});
-  const user = users[userUid];
-  if (!user || user.role !== "monaguillo") return;
-
-  const now = getSimulatedTime();
-  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-  let userChanged = false;
-
-  // Monthly reset check: if current simulated month is different from last recurrence check month
-  if (user.lastRecurrenceCheckMonth !== currentMonthStr) {
-    user.activeRecurrence = false;
-    user.lastRecurrenceCheckMonth = currentMonthStr;
-    userChanged = true;
-  }
-
-  const masses = getStorageItem("joselito_masses", []);
-  let regs = getStorageItem("joselito_registrations", []);
-  const todayStr = getLocalDateString(now);
-
-  if (user.activeRecurrence) {
-    // Auto-register for future occurrences of recurringMasses
-    const recurringMassIds = user.recurringMasses || [];
+const syncRecurringAssignments = async (userUid) => {
+  let addedCount = 0;
+  let removedCount = 0;
+  try {
+    let user = null;
+    let masses = [];
+    let regs = [];
     
-    // Generate dates for the next 45 days
-    for (let i = 0; i < 45; i++) {
-      const tempDate = new Date(now);
-      tempDate.setDate(now.getDate() + i);
-      const dateStr = getLocalDateString(tempDate);
-      const dayOfWeek = tempDate.getDay();
+    const isReal = isRealFirebaseEnabled() && realDb;
 
-      recurringMassIds.forEach(massId => {
-        const mass = masses.find(m => m.id === massId);
-        if (mass && mass.isRecurring && mass.dayOfWeek === dayOfWeek) {
-          // Check if registration exists (active or cancelled)
-          const existing = regs.find(r => r.massId === massId && r.userUid === userUid && r.date === dateStr);
-          if (!existing) {
-            // Create pending registration
-            regs.push({
-              id: `reg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              massId,
-              date: dateStr,
-              userUid,
-              userName: `${user.name} ${user.lastName}`,
-              userEmail: user.email,
-              userRole: "Monaguillo",
-              userPhotoURL: user.photoURL || "",
-              status: "pending",
-              massTitle: mass.title,
-              massTime: mass.time,
-              massLocation: "Templo Parroquial"
-            });
+    if (isReal) {
+      try {
+        const userSnap = await getDoc(doc(realDb, "users", userUid));
+        if (!userSnap.exists()) return { addedCount: 0, removedCount: 0, error: "User doc not found in Firestore" };
+        user = { uid: userUid, ...userSnap.data() };
+
+        const massesSnap = await getDocs(collection(realDb, "masses"));
+        masses = massesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const now = getSimulatedTime();
+        const todayStr = getLocalDateString(now);
+        const qRegs = query(
+          collection(realDb, "registrations"),
+          where("userUid", "==", userUid)
+        );
+        const regsSnap = await getDocs(qRegs);
+        regs = regsSnap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(r => r.date >= todayStr);
+      } catch (e) {
+        console.error("Error fetching data for syncRecurringAssignments:", e);
+        return { addedCount: 0, removedCount: 0, error: e.message };
+      }
+    } else {
+      const users = getStorageItem("joselito_users", {});
+      user = users[userUid];
+      if (!user) return { addedCount: 0, removedCount: 0, error: "User local profile not found" };
+      masses = getStorageItem("joselito_masses", []);
+      regs = getStorageItem("joselito_registrations", []);
+    }
+
+    // Case-insensitive role comparison
+    if (user.role?.toLowerCase() !== "monaguillo") return { addedCount: 0, removedCount: 0, error: "User is not a monaguillo" };
+
+    const now = getSimulatedTime();
+    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    let userChanged = false;
+
+    // Monthly reset check: if current simulated month is different from last recurrence check month
+    if (user.lastRecurrenceCheckMonth !== currentMonthStr) {
+      user.activeRecurrence = false;
+      user.lastRecurrenceCheckMonth = currentMonthStr;
+      userChanged = true;
+    }
+
+    const todayStr = getLocalDateString(now);
+
+    if (user.activeRecurrence) {
+      // Auto-register for future occurrences of recurringMasses
+      const recurringMassIds = user.recurringMasses || [];
+      
+      // Generate dates for the next 45 days
+      for (let i = 0; i < 45; i++) {
+        const tempDate = new Date(now);
+        tempDate.setDate(now.getDate() + i);
+        const dateStr = getLocalDateString(tempDate);
+        const dayOfWeek = tempDate.getDay();
+
+        for (const massId of recurringMassIds) {
+          const mass = masses.find(m => m.id === massId);
+          // Loose type check for dayOfWeek
+          if (mass && mass.isRecurring && Number(mass.dayOfWeek) === Number(dayOfWeek)) {
+            // Check if registration exists for THIS specific user (active or cancelled)
+            const existing = regs.find(r => r.massId === massId && r.userUid === userUid && r.date === dateStr);
+            if (!existing) {
+              const newReg = {
+                massId,
+                date: dateStr,
+                userUid,
+                userName: `${user.name} ${user.lastName}`,
+                userEmail: user.email,
+                userRole: "Monaguillo",
+                userPhotoURL: user.photoURL || "",
+                status: "pending",
+                massTitle: mass.title,
+                massTime: mass.time,
+                massLocation: "Templo Parroquial"
+              };
+
+              if (isReal) {
+                await addDoc(collection(realDb, "registrations"), newReg);
+                addedCount++;
+              } else {
+                regs.push({ id: `reg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, ...newReg });
+                addedCount++;
+              }
+            }
           }
         }
-      });
-    }
-  } else {
-    // If activeRecurrence is false, clean up all future pending registrations that are for recurring masses
-    regs = regs.filter(r => {
-      if (r.userUid !== userUid) return true;
-      if (r.date < todayStr) return true;
-      if (r.status !== "pending") return true;
-      
-      const mass = masses.find(m => m.id === r.massId);
-      if (mass && mass.isRecurring) {
-        return false; // remove
       }
-      return true;
-    });
-  }
-
-  // Also if any recurring mass was unchecked, remove its future registrations
-  if (user.activeRecurrence) {
-    const recurringMassIds = user.recurringMasses || [];
-    regs = regs.filter(r => {
-      if (r.userUid !== userUid) return true;
-      if (r.date < todayStr) return true;
-      if (r.status !== "pending") return true;
-      
-      const mass = masses.find(m => m.id === r.massId);
-      if (mass && mass.isRecurring && !recurringMassIds.includes(r.massId)) {
-        return false; // remove
+    } else {
+      // If activeRecurrence is false, clean up all future pending registrations that are for recurring masses
+      for (const r of regs) {
+        if (r.userUid === userUid && r.date >= todayStr && r.status === "pending") {
+          const mass = masses.find(m => m.id === r.massId);
+          if (mass && mass.isRecurring) {
+            if (isReal) {
+              await deleteDoc(doc(realDb, "registrations", r.id));
+              removedCount++;
+            }
+          }
+        }
       }
-      return true;
-    });
-  }
-
-  setStorageItem("joselito_registrations", regs);
-
-  if (userChanged) {
-    users[userUid] = user;
-    setStorageItem("joselito_users", users);
-    
-    // Sync current session user if same
-    const curr = getStorageItem("joselito_current_user", null);
-    if (curr && curr.uid === userUid) {
-      setStorageItem("joselito_current_user", { ...curr, ...user });
+      if (!isReal) {
+        const lengthBefore = regs.length;
+        regs = regs.filter(r => {
+          if (r.userUid !== userUid) return true;
+          if (r.date < todayStr) return true;
+          if (r.status !== "pending") return true;
+          const mass = masses.find(m => m.id === r.massId);
+          if (mass && mass.isRecurring) return false;
+          return true;
+        });
+        removedCount += (lengthBefore - regs.length);
+      }
     }
+
+    // Also if any recurring mass was unchecked, remove its future registrations
+    if (user.activeRecurrence) {
+      const recurringMassIds = user.recurringMasses || [];
+      for (const r of regs) {
+        if (r.userUid === userUid && r.date >= todayStr && r.status === "pending") {
+          const mass = masses.find(m => m.id === r.massId);
+          if (mass && mass.isRecurring && !recurringMassIds.includes(r.massId)) {
+            if (isReal) {
+              await deleteDoc(doc(realDb, "registrations", r.id));
+              removedCount++;
+            }
+          }
+        }
+      }
+      if (!isReal) {
+        const lengthBefore = regs.length;
+        regs = regs.filter(r => {
+          if (r.userUid !== userUid) return true;
+          if (r.date < todayStr) return true;
+          if (r.status !== "pending") return true;
+          const mass = masses.find(m => m.id === r.massId);
+          if (mass && mass.isRecurring && !recurringMassIds.includes(r.massId)) return false;
+          return true;
+        });
+        removedCount += (lengthBefore - regs.length);
+      }
+    }
+
+    if (!isReal) {
+      setStorageItem("joselito_registrations", regs);
+    }
+
+    if (userChanged) {
+      if (isReal) {
+        await updateDoc(doc(realDb, "users", userUid), {
+          activeRecurrence: user.activeRecurrence,
+          lastRecurrenceCheckMonth: user.lastRecurrenceCheckMonth
+        });
+      } else {
+        const users = getStorageItem("joselito_users", {});
+        users[userUid] = user;
+        setStorageItem("joselito_users", users);
+        const curr = getStorageItem("joselito_current_user", null);
+        if (curr && curr.uid === userUid) {
+          setStorageItem("joselito_current_user", { ...curr, ...user });
+        }
+      }
+    }
+    return { addedCount, removedCount };
+  } catch (err) {
+    console.error("Error in syncRecurringAssignments:", err);
+    return { addedCount, removedCount, error: err.message };
   }
 };
 
@@ -1188,6 +1268,7 @@ export const db = {
           activeRecurrence: confirmStatus,
           recurringMasses: recurringMasses
         });
+        await syncRecurringAssignments(userUid);
         return;
       } catch (e) {
         return handleFirestoreError(e);
@@ -1356,6 +1437,7 @@ export const db = {
   getUserProfile: async (uid) => {
     if (isRealFirebaseEnabled() && realDb) {
       try {
+        await syncRecurringAssignments(uid);
         const snap = await getDoc(doc(realDb, "users", uid));
         if (!snap.exists()) return null;
         const userData = snap.data();
