@@ -100,6 +100,46 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
     }
   };
 
+  const handleRequestSwap = async (regId) => {
+    const ok = await alerts.confirm("¿Deseas solicitar un cambio de turno para esta misa? Se notificará a los demás monaguillos.", "Solicitar cambio");
+    if (!ok) return;
+    setLoading(true);
+    try {
+      await db.requestRegistrationSwap(regId, user.uid, `${user.name} ${user.lastName}`, mass.title, dateStr, mass.time);
+      alerts.alert("Solicitud publicada con éxito. Se ha enviado una notificación a los demás servidores.", "Cambio solicitado", "success");
+      window.dispatchEvent(new Event("mass-state-updated"));
+    } catch (err) {
+      alerts.alert(err.message, "Error al solicitar cambio", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAcceptSwap = async (reg) => {
+    const ok = await alerts.confirm(`¿Aceptas cubrir el turno de ${reg.userName} para esta misa? Pasarás a estar registrado en su lugar.`, "Aceptar cambio");
+    if (!ok) return;
+    setLoading(true);
+    try {
+      await db.acceptRegistrationSwap(
+        reg.id, 
+        user.uid, 
+        `${user.name} ${user.lastName}`, 
+        user.email, 
+        user.photoURL, 
+        reg.userUid, 
+        mass.title, 
+        dateStr, 
+        mass.time
+      );
+      alerts.alert(`Has aceptado el turno. Ahora estás registrado para la misa.`, "Cambio realizado", "success");
+      window.dispatchEvent(new Event("mass-state-updated"));
+    } catch (err) {
+      alerts.alert(err.message, "Error al aceptar cambio", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const userReg = registrations.find(r => r.userUid === user.uid);
   const isUserRegistered = !!userReg;
   const isUserCheckedIn = userReg?.status === "checked-in" || userReg?.status === "attended";
@@ -220,9 +260,40 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
                         )}
                       </div>
                       
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1 flex flex-col">
                         <p className="text-sm font-bold text-white truncate">{reg.userName}</p>
+                        {reg.status === "swap_requested" && (
+                          <span className="text-[9px] font-extrabold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full w-fit mt-1">
+                            SOLICITÓ CAMBIO
+                          </span>
+                        )}
                       </div>
+
+                      {/* Swap Actions */}
+                      {user.role === "monaguillo" && (
+                        <div className="flex items-center gap-1.5 mr-2">
+                          {isCurrent && reg.status !== "swap_requested" && !isChecked && !hasStarted && (
+                            <button
+                              onClick={() => handleRequestSwap(reg.id)}
+                              className="text-[9px] bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 font-bold px-2 py-1 rounded-lg border border-amber-500/30 transition-all active:scale-95 flex items-center gap-0.5"
+                              title="Solicitar cambio para este turno"
+                            >
+                              <span className="material-symbols-outlined text-[10px]">swap_horiz</span>
+                              Cambiar
+                            </button>
+                          )}
+                          {!isCurrent && reg.status === "swap_requested" && !isUserRegistered && !isChecked && !hasStarted && (
+                            <button
+                              onClick={() => handleAcceptSwap(reg)}
+                              className="text-[9px] bg-green-500/20 hover:bg-green-500/35 text-green-300 font-bold px-2 py-1 rounded-lg border border-green-500/30 transition-all active:scale-95 flex items-center gap-0.5 animate-pulse"
+                              title="Aceptar este turno de servicio"
+                            >
+                              <span className="material-symbols-outlined text-[10px]">check</span>
+                              Aceptar
+                            </button>
+                          )}
+                        </div>
+                      )}
 
                       {isChecked ? (
                         <span className="material-symbols-outlined text-green-400 text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>

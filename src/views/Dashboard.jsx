@@ -154,11 +154,15 @@ export default function Dashboard({ user, onSelectMass }) {
       alerts.alert("Solo los monaguillos pueden solicitar un cambio de turno.", "Operación no permitida", "warning");
       return;
     }
-    // Simulate shift swap request
-    await alerts.alert("Tu solicitud de cambio de turno ha sido publicada. Los demás servidores recibirán una notificación.", "Cambio de Turno", "success");
-    // Trigger in-app notification simulation for others
-    const event = new Event("notifications-updated");
-    window.dispatchEvent(event);
+    try {
+      await db.requestShiftSwap(user.uid, `${user.name} ${user.lastName}`);
+      await alerts.alert("Tu solicitud de cambio de turno ha sido publicada en la base de datos. Los demás servidores recibirán una notificación.", "Cambio de Turno", "success");
+      // Trigger local notification sync update event
+      const event = new Event("notifications-updated");
+      window.dispatchEvent(event);
+    } catch (e) {
+      alerts.alert("Error al enviar la solicitud: " + e.message, "Error", "error");
+    }
   };
 
   const handlePrev = () => {

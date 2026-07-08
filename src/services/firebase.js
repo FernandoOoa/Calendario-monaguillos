@@ -1277,6 +1277,159 @@ export const db = {
     return simulatedDb.confirmRecurrence(userUid, confirmStatus, recurringMasses);
   },
   
+  requestShiftSwap: async (userUid, userName) => {
+    if (isRealFirebaseEnabled() && realDb) {
+      try {
+        const querySnapshot = await getDocs(collection(realDb, "users"));
+        const otherMonaguillos = querySnapshot.docs
+          .map(d => ({ uid: d.id, ...d.data() }))
+          .filter(u => u.role?.toLowerCase() === "monaguillo" && u.uid !== userUid);
+
+        for (const monaguillo of otherMonaguillos) {
+          await addDoc(collection(realDb, "notifications"), {
+            recipientUid: monaguillo.uid,
+            type: "info",
+            title: "Solicitud de Cambio de Turno",
+            content: `${userName} ha solicitado un cambio de turno. Por favor, revisa el calendario.`,
+            date: new Date().toISOString(),
+            read: false
+          });
+        }
+        return;
+      } catch (e) {
+        return handleFirestoreError(e);
+      }
+    } else {
+      const users = getStorageItem("joselito_users", {});
+      const otherMonaguillos = Object.values(users)
+        .filter(u => u.role?.toLowerCase() === "monaguillo" && u.uid !== userUid);
+      
+      const notifs = getStorageItem("joselito_notifications", []);
+      for (const monaguillo of otherMonaguillos) {
+        notifs.push({
+          id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          recipientUid: monaguillo.uid,
+          type: "info",
+          title: "Solicitud de Cambio de Turno",
+          content: `${userName} ha solicitado un cambio de turno. Por favor, revisa el calendario.`,
+          date: new Date().toISOString(),
+          read: false
+        });
+      }
+      setStorageItem("joselito_notifications", notifs);
+      window.dispatchEvent(new Event("notifications-updated"));
+    }
+  },
+  
+  requestRegistrationSwap: async (regId, userUid, userName, massTitle, dateStr, timeStr) => {
+    if (isRealFirebaseEnabled() && realDb) {
+      try {
+        await updateDoc(doc(realDb, "registrations", regId), {
+          status: "swap_requested"
+        });
+
+        // Notify other monaguillos
+        const querySnapshot = await getDocs(collection(realDb, "users"));
+        const otherMonaguillos = querySnapshot.docs
+          .map(d => ({ uid: d.id, ...d.data() }))
+          .filter(u => u.role?.toLowerCase() === "monaguillo" && u.uid !== userUid);
+
+        for (const monaguillo of otherMonaguillos) {
+          await addDoc(collection(realDb, "notifications"), {
+            recipientUid: monaguillo.uid,
+            type: "warning",
+            title: "Cambio de Turno Disponible",
+            content: `${userName} solicita cambio para la Misa: ${massTitle} el ${dateStr} a las ${timeStr}.`,
+            date: new Date().toISOString(),
+            read: false
+          });
+        }
+        return;
+      } catch (e) {
+        return handleFirestoreError(e);
+      }
+    } else {
+      const regs = getStorageItem("joselito_registrations", []);
+      const reg = regs.find(r => r.id === regId);
+      if (reg) {
+        reg.status = "swap_requested";
+        setStorageItem("joselito_registrations", regs);
+      }
+
+      // Notify other monaguillos
+      const users = getStorageItem("joselito_users", {});
+      const otherMonaguillos = Object.values(users)
+        .filter(u => u.role?.toLowerCase() === "monaguillo" && u.uid !== userUid);
+      
+      const notifs = getStorageItem("joselito_notifications", []);
+      for (const monaguillo of otherMonaguillos) {
+        notifs.push({
+          id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          recipientUid: monaguillo.uid,
+          type: "warning",
+          title: "Cambio de Turno Disponible",
+          content: `${userName} solicita cambio para la Misa: ${massTitle} el ${dateStr} a las ${timeStr}.`,
+          date: new Date().toISOString(),
+          read: false
+        });
+      }
+      setStorageItem("joselito_notifications", notifs);
+      window.dispatchEvent(new Event("notifications-updated"));
+    }
+  },
+
+  acceptRegistrationSwap: async (regId, userUid, userName, userEmail, userPhotoURL, originalUserUid, massTitle, dateStr, timeStr) => {
+    if (isRealFirebaseEnabled() && realDb) {
+      try {
+        await updateDoc(doc(realDb, "registrations", regId), {
+          userUid,
+          userName,
+          userEmail,
+          userPhotoURL: userPhotoURL || "",
+          status: "pending"
+        });
+
+        // Notify the original monaguillo
+        await addDoc(collection(realDb, "notifications"), {
+          recipientUid: originalUserUid,
+          type: "success",
+          title: "Cambio Aceptado",
+          content: `${userName} aceptó tu cambio de turno para la Misa: ${massTitle} el ${dateStr}.`,
+          date: new Date().toISOString(),
+          read: false
+        });
+        return;
+      } catch (e) {
+        return handleFirestoreError(e);
+      }
+    } else {
+      const regs = getStorageItem("joselito_registrations", []);
+      const reg = regs.find(r => r.id === regId);
+      if (reg) {
+        reg.userUid = userUid;
+        reg.userName = userName;
+        reg.userEmail = userEmail;
+        reg.userPhotoURL = userPhotoURL || "";
+        reg.status = "pending";
+        setStorageItem("joselito_registrations", regs);
+      }
+
+      // Notify the original monaguillo
+      const notifs = getStorageItem("joselito_notifications", []);
+      notifs.push({
+        id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        recipientUid: originalUserUid,
+        type: "success",
+        title: "Cambio Aceptado",
+        content: `${userName} aceptó tu cambio de turno para la Misa: ${massTitle} el ${dateStr}.`,
+        date: new Date().toISOString(),
+        read: false
+      });
+      setStorageItem("joselito_notifications", notifs);
+      window.dispatchEvent(new Event("notifications-updated"));
+    }
+  },
+  
   createMass: async (massData) => {
     if (isRealFirebaseEnabled() && realDb) {
       try {
