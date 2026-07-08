@@ -83,6 +83,7 @@ export default function Profile({ user, onUpdateUser }) {
       if (onUpdateUser) {
         onUpdateUser({ ...user, activeRecurrence: val, recurringMasses: selectedRecurringMasses });
       }
+      window.dispatchEvent(new Event("mass-state-updated"));
     } catch (err) {
       alerts.alert("Error actualizando recurrencia", "Error", "error");
     }
@@ -103,6 +104,7 @@ export default function Profile({ user, onUpdateUser }) {
       if (onUpdateUser) {
         onUpdateUser({ ...user, activeRecurrence: recurrenceConfirmed, recurringMasses: nextSelection });
       }
+      window.dispatchEvent(new Event("mass-state-updated"));
     } catch (err) {
       alerts.alert("Error al actualizar la asignación de misas", "Error", "error");
     }

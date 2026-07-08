@@ -262,6 +262,108 @@ const getSimulatedTime = () => {
   return new Date();
 };
 
+const syncRecurringAssignments = (userUid) => {
+  const users = getStorageItem("joselito_users", {});
+  const user = users[userUid];
+  if (!user || user.role !== "monaguillo") return;
+
+  const now = getSimulatedTime();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  let userChanged = false;
+
+  // Monthly reset check: if current simulated month is different from last recurrence check month
+  if (user.lastRecurrenceCheckMonth !== currentMonthStr) {
+    user.activeRecurrence = false;
+    user.lastRecurrenceCheckMonth = currentMonthStr;
+    userChanged = true;
+  }
+
+  const masses = getStorageItem("joselito_masses", []);
+  let regs = getStorageItem("joselito_registrations", []);
+  const todayStr = getLocalDateString(now);
+
+  if (user.activeRecurrence) {
+    // Auto-register for future occurrences of recurringMasses
+    const recurringMassIds = user.recurringMasses || [];
+    
+    // Generate dates for the next 45 days
+    for (let i = 0; i < 45; i++) {
+      const tempDate = new Date(now);
+      tempDate.setDate(now.getDate() + i);
+      const dateStr = getLocalDateString(tempDate);
+      const dayOfWeek = tempDate.getDay();
+
+      recurringMassIds.forEach(massId => {
+        const mass = masses.find(m => m.id === massId);
+        if (mass && mass.isRecurring && mass.dayOfWeek === dayOfWeek) {
+          // Check if registration exists (active or cancelled)
+          const existing = regs.find(r => r.massId === massId && r.userUid === userUid && r.date === dateStr);
+          if (!existing) {
+            // Create pending registration
+            regs.push({
+              id: `reg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              massId,
+              date: dateStr,
+              userUid,
+              userName: `${user.name} ${user.lastName}`,
+              userEmail: user.email,
+              userRole: "Monaguillo",
+              userPhotoURL: user.photoURL || "",
+              status: "pending",
+              massTitle: mass.title,
+              massTime: mass.time,
+              massLocation: "Templo Parroquial"
+            });
+          }
+        }
+      });
+    }
+  } else {
+    // If activeRecurrence is false, clean up all future pending registrations that are for recurring masses
+    regs = regs.filter(r => {
+      if (r.userUid !== userUid) return true;
+      if (r.date < todayStr) return true;
+      if (r.status !== "pending") return true;
+      
+      const mass = masses.find(m => m.id === r.massId);
+      if (mass && mass.isRecurring) {
+        return false; // remove
+      }
+      return true;
+    });
+  }
+
+  // Also if any recurring mass was unchecked, remove its future registrations
+  if (user.activeRecurrence) {
+    const recurringMassIds = user.recurringMasses || [];
+    regs = regs.filter(r => {
+      if (r.userUid !== userUid) return true;
+      if (r.date < todayStr) return true;
+      if (r.status !== "pending") return true;
+      
+      const mass = masses.find(m => m.id === r.massId);
+      if (mass && mass.isRecurring && !recurringMassIds.includes(r.massId)) {
+        return false; // remove
+      }
+      return true;
+    });
+  }
+
+  setStorageItem("joselito_registrations", regs);
+
+  if (userChanged) {
+    users[userUid] = user;
+    setStorageItem("joselito_users", users);
+    
+    // Sync current session user if same
+    const curr = getStorageItem("joselito_current_user", null);
+    if (curr && curr.uid === userUid) {
+      setStorageItem("joselito_current_user", { ...curr, ...user });
+    }
+  }
+};
+
 const setSimulatedTime = (dateString) => {
   // Simulación desactivada en modo producción simplificado
 };
@@ -446,7 +548,7 @@ const simulatedDb = {
     
     // Attach current registrations to each mass for this date
     return filteredMasses.map(mass => {
-      const massRegs = regs.filter(r => r.massId === mass.id && r.date === dateStr);
+      const massRegs = regs.filter(r => r.massId === mass.id && r.date === dateStr && r.status !== "cancelled");
       return {
         ...mass,
         registrations: massRegs
@@ -457,10 +559,18 @@ const simulatedDb = {
   registerForMass: async (massId, user, role, dateStr) => {
     const regs = getStorageItem("joselito_registrations", []);
     
-    // Prevent duplicate registration on the same date
+    // Prevent duplicate registration on the same date (reusing cancelled ones)
     const targetDateStr = dateStr || getLocalDateString(getSimulatedTime());
-    const exists = regs.some(r => r.massId === massId && r.userUid === user.uid && r.date === targetDateStr);
-    if (exists) throw new Error("Ya estás registrado para esta misa.");
+    const existingIndex = regs.findIndex(r => r.massId === massId && r.userUid === user.uid && r.date === targetDateStr);
+    if (existingIndex !== -1) {
+      if (regs[existingIndex].status === "cancelled") {
+        regs[existingIndex].status = "pending";
+        setStorageItem("joselito_registrations", regs);
+        return regs[existingIndex];
+      } else {
+        throw new Error("Ya estás registrado para esta misa.");
+      }
+    }
     
     // Find mass details to denormalize
     const masses = getStorageItem("joselito_masses", []);
@@ -500,8 +610,7 @@ const simulatedDb = {
     
     if (!regToCancel) throw new Error("Registro no encontrado.");
     
-    // Remove registration or mark cancelled
-    regs = regs.filter(r => r.id !== regToCancel.id);
+    regToCancel.status = "cancelled";
     setStorageItem("joselito_registrations", regs);
     
     // Get user info and parent info
@@ -563,6 +672,7 @@ const simulatedDb = {
         currentSimulatedUser.recurringMasses = recurringMasses;
         setStorageItem("joselito_current_user", currentSimulatedUser);
       }
+      syncRecurringAssignments(userUid);
     }
   },
   
@@ -600,7 +710,7 @@ const simulatedDb = {
   
   getMassAttendance: async (massId, dateStr) => {
     const regs = getStorageItem("joselito_registrations", []);
-    return regs.filter(r => r.massId === massId && r.date === dateStr);
+    return regs.filter(r => r.massId === massId && r.date === dateStr && r.status !== "cancelled");
   },
   
   getNotifications: async (userUid) => {
@@ -625,6 +735,7 @@ const simulatedDb = {
   },
   
   getUserProfile: async (uid) => {
+    syncRecurringAssignments(uid);
     const users = getStorageItem("joselito_users", {});
     return users[uid] || null;
   },
@@ -907,7 +1018,7 @@ export const db = {
         
         return masses.map(mass => ({
           ...mass,
-          registrations: regs.filter(r => r.massId === mass.id)
+          registrations: regs.filter(r => r.massId === mass.id && r.status !== "cancelled")
         }));
       } catch (e) {
         return handleFirestoreError(e);
@@ -940,7 +1051,15 @@ export const db = {
           where("date", "==", targetDateStr)
         );
         const snap = await getDocs(q);
-        if (!snap.empty) throw new Error("Ya estás registrado para esta misa.");
+        if (!snap.empty) {
+          const regDoc = snap.docs[0];
+          if (regDoc.data().status === "cancelled") {
+            await updateDoc(doc(realDb, "registrations", regDoc.id), { status: "pending" });
+            return { id: regDoc.id, ...regDoc.data(), status: "pending" };
+          } else {
+            throw new Error("Ya estás registrado para esta misa.");
+          }
+        }
 
         const newReg = {
           massId,
@@ -1000,7 +1119,7 @@ export const db = {
         }
         
         const regDoc = snap.docs[0];
-        await deleteDoc(doc(realDb, "registrations", regDoc.id));
+        await updateDoc(doc(realDb, "registrations", regDoc.id), { status: "cancelled" });
         
         const userSnap = await getDoc(doc(realDb, "users", userUid));
         if (userSnap.exists()) {
@@ -1151,7 +1270,9 @@ export const db = {
           where("date", "==", dateStr)
         );
         const snap = await getDocs(q);
-        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        return snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(r => r.status !== "cancelled");
       } catch (e) {
         return handleFirestoreError(e);
       }
