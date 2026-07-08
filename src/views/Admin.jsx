@@ -27,6 +27,7 @@ export default function Admin({ user }) {
   const [editNotes, setEditNotes] = useState("");
   const [editIsRecurring, setEditIsRecurring] = useState(true);
   const [editServersRequired, setEditServersRequired] = useState(3);
+  const [specialSearchQuery, setSpecialSearchQuery] = useState("");
 
   // Attendance Inspector states
   const [inspectDate, setInspectDate] = useState("");
@@ -263,7 +264,7 @@ export default function Admin({ user }) {
     const grouped = [];
 
     dayOrder.forEach(dayNum => {
-      const dayMasses = massesList.filter(m => m.dayOfWeek === dayNum);
+      const dayMasses = massesList.filter(m => m.dayOfWeek === dayNum && m.isRecurring !== false);
       if (dayMasses.length === 0) return;
 
       // Sort by time ascending
@@ -507,63 +508,168 @@ export default function Admin({ user }) {
 
       {/* TAB: Manage Masses List */}
       {activeTab === "manage" && (
-        <div className="glass-card p-6 rounded-3xl border border-white/10 shadow-lg">
-          <h2 className="text-base font-bold text-on-surface mb-6 flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-primary">view_list</span>
-            Misas Programadas Registradas
-          </h2>
-          
-          <div className="space-y-6">
-            {massesList.length === 0 ? (
-              <p className="text-xs text-on-surface-variant/70 italic text-center py-8">No hay misas creadas.</p>
-            ) : (
-              getGroupedMasses().map(({ dayNum, dayLabel, morning, afternoon }) => (
-                <div key={dayNum} className="border border-white/5 bg-white/[0.01] rounded-2xl p-4 md:p-6 space-y-4 shadow-sm">
-                  {/* Day Title */}
-                  <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                    <h3 className="text-sm font-bold text-primary flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[18px]">calendar_today</span>
-                      {dayLabel}
-                    </h3>
-                    <span className="text-[10px] bg-white/5 text-on-surface-variant px-2.5 py-0.5 rounded-full font-bold">
-                      {(morning.length + afternoon.length)} { (morning.length + afternoon.length) === 1 ? "Misa" : "Misas" }
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Morning Subsection */}
-                    <div>
-                      <h4 className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-3 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[16px] text-amber-400">light_mode</span>
-                        Mañana (AM)
-                      </h4>
-                      {morning.length === 0 ? (
-                        <p className="text-xs text-on-surface-variant/40 italic py-2">No hay misas en la mañana.</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {morning.map(mass => renderMassRow(mass))}
-                        </div>
-                      )}
+        <div className="space-y-8">
+          {/* Recurring Masses Section */}
+          <div className="glass-card p-6 rounded-3xl border border-white/10 shadow-lg">
+            <h2 className="text-base font-bold text-on-surface mb-6 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-primary">event_repeat</span>
+              Misas Recurrentes Semanales
+            </h2>
+            
+            <div className="space-y-6">
+              {massesList.filter(m => m.isRecurring !== false).length === 0 ? (
+                <p className="text-xs text-on-surface-variant/70 italic text-center py-8">No hay misas recurrentes creadas.</p>
+              ) : (
+                getGroupedMasses().map(({ dayNum, dayLabel, morning, afternoon }) => (
+                  <div key={dayNum} className="border border-white/5 bg-white/[0.01] rounded-2xl p-4 md:p-6 space-y-4 shadow-sm">
+                    {/* Day Title */}
+                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                      <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px]">calendar_today</span>
+                        {dayLabel}
+                      </h3>
+                      <span className="text-[10px] bg-white/5 text-on-surface-variant px-2.5 py-0.5 rounded-full font-bold">
+                        {(morning.length + afternoon.length)} { (morning.length + afternoon.length) === 1 ? "Misa" : "Misas" }
+                      </span>
                     </div>
 
-                    {/* Afternoon Subsection */}
-                    <div>
-                      <h4 className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-3 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[16px] text-indigo-400">dark_mode</span>
-                        Tarde / Noche (PM)
-                      </h4>
-                      {afternoon.length === 0 ? (
-                        <p className="text-xs text-on-surface-variant/40 italic py-2">No hay misas en la tarde.</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {afternoon.map(mass => renderMassRow(mass))}
-                        </div>
-                      )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Morning Subsection */}
+                      <div>
+                        <h4 className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-3 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[16px] text-amber-400">light_mode</span>
+                          Mañana (AM)
+                        </h4>
+                        {morning.length === 0 ? (
+                          <p className="text-xs text-on-surface-variant/40 italic py-2">No hay misas en la mañana.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {morning.map(mass => renderMassRow(mass))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Afternoon Subsection */}
+                      <div>
+                        <h4 className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-3 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[16px] text-indigo-400">dark_mode</span>
+                          Tarde / Noche (PM)
+                        </h4>
+                        {afternoon.length === 0 ? (
+                          <p className="text-xs text-on-surface-variant/40 italic py-2">No hay misas en la tarde.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {afternoon.map(mass => renderMassRow(mass))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Special / One-off Masses Section */}
+          <div className="glass-card p-6 rounded-3xl border border-white/10 shadow-lg">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              <h2 className="text-base font-bold text-on-surface flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-amber-400">star</span>
+                Misas Especiales y Eventos Únicos
+              </h2>
+              
+              {/* Filter Search Bar */}
+              <div className="relative w-full md:max-w-xs shrink-0">
+                <span className="material-symbols-outlined absolute left-3.5 top-2.5 text-on-surface-variant/40 text-sm">search</span>
+                <input
+                  type="text"
+                  placeholder="Filtrar por título, tipo o fecha..."
+                  value={specialSearchQuery}
+                  onChange={(e) => setSpecialSearchQuery(e.target.value)}
+                  className="w-full h-9 pl-9 pr-4 rounded-xl bg-white/5 border border-white/10 text-on-surface focus:border-primary outline-none text-xs placeholder:text-on-surface-variant/40 font-semibold"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto no-scrollbar">
+              {(() => {
+                const specialMasses = massesList.filter(m => m.isRecurring === false);
+                const sortedSpecial = [...specialMasses].sort((a, b) => {
+                  const dateCompare = (a.specificDate || "").localeCompare(b.specificDate || "");
+                  if (dateCompare !== 0) return dateCompare;
+                  return a.time.localeCompare(b.time);
+                });
+                const filtered = sortedSpecial.filter(m => {
+                  const q = specialSearchQuery.toLowerCase();
+                  return (
+                    m.title.toLowerCase().includes(q) ||
+                    m.type.toLowerCase().includes(q) ||
+                    (m.specificDate || "").includes(q)
+                  );
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <p className="text-xs text-on-surface-variant/70 italic text-center py-8">
+                      {specialMasses.length === 0 ? "No hay misas especiales creadas." : "No se encontraron misas con los filtros actuales."}
+                    </p>
+                  );
+                }
+
+                return (
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-white/10 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                        <th className="py-3 px-2">Fecha</th>
+                        <th className="py-3 px-2">Hora</th>
+                        <th className="py-3 px-2">Celebración / Tipo</th>
+                        <th className="py-3 px-2">Monaguillos Requeridos</th>
+                        <th className="py-3 px-2 text-right">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 font-semibold">
+                      {filtered.map((mass) => (
+                        <tr key={mass.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3.5 px-2 text-on-surface font-bold">
+                            {mass.specificDate ? mass.specificDate.split("-").reverse().join("/") : "N/A"}
+                          </td>
+                          <td className="py-3.5 px-2 font-bold text-primary">
+                            {formatTimeToAMPM(mass.time)}
+                          </td>
+                          <td className="py-3.5 px-2">
+                            <p className="font-bold text-on-surface">{mass.title}</p>
+                            <span className="text-[9px] bg-primary/20 text-primary border border-primary/10 px-1.5 py-0.5 rounded font-bold uppercase inline-block mt-0.5">
+                              {mass.type}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-2 font-bold text-on-surface-variant text-center md:text-left">
+                            {mass.serversRequired || 3}
+                          </td>
+                          <td className="py-3.5 px-2 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => startEditMass(mass)}
+                                className="p-2 text-on-surface-variant hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                title="Editar Misa"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">edit</span>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMass(mass.id)}
+                                className="p-2 text-error hover:bg-error-container/20 rounded-lg transition-colors"
+                                title="Eliminar Misa"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                );
+              })()}
+            </div>
           </div>
         </div>
       )}

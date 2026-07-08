@@ -8,6 +8,8 @@ export default function Profile({ user, onUpdateUser }) {
   const [notifications, setNotifications] = useState([]);
   const [history, setHistory] = useState([]);
   const [children, setChildren] = useState([]);
+  const [parishRecurringMasses, setParishRecurringMasses] = useState([]);
+  const [selectedRecurringMasses, setSelectedRecurringMasses] = useState([]);
 
   // New child form for parents
   const [newChildEmail, setNewChildEmail] = useState("");
@@ -17,6 +19,21 @@ export default function Profile({ user, onUpdateUser }) {
   const loadProfileData = async () => {
     if (!user) return;
     try {
+      // Fetch available recurring masses
+      const allMasses = await db.getAllMasses();
+      const recMasses = allMasses.filter(m => m.isRecurring);
+      
+      const dayOrder = [1, 2, 3, 4, 5, 6, 0]; // L, M, M, J, V, S, D
+      const sortedRecMasses = [...recMasses].sort((a, b) => {
+        const orderA = dayOrder.indexOf(a.dayOfWeek);
+        const orderB = dayOrder.indexOf(b.dayOfWeek);
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        return a.time.localeCompare(b.time);
+      });
+      setParishRecurringMasses(sortedRecMasses);
+
       if (user.role === "monaguillo") {
         const profile = await db.getUserProfile(user.uid);
         if (profile) {
@@ -26,6 +43,7 @@ export default function Profile({ user, onUpdateUser }) {
             level: profile.level || 1
           });
           setRecurrenceConfirmed(profile.activeRecurrence || false);
+          setSelectedRecurringMasses(profile.recurringMasses || []);
         }
 
         const hist = await db.getHistory(user.uid);
@@ -60,13 +78,33 @@ export default function Profile({ user, onUpdateUser }) {
     const val = e.target.checked;
     setRecurrenceConfirmed(val);
     try {
-      await db.confirmRecurrence(user.uid, val);
+      await db.confirmRecurrence(user.uid, val, selectedRecurringMasses);
       // Trigger user state reload in app shell
       if (onUpdateUser) {
-        onUpdateUser({ ...user, activeRecurrence: val });
+        onUpdateUser({ ...user, activeRecurrence: val, recurringMasses: selectedRecurringMasses });
       }
     } catch (err) {
       alerts.alert("Error actualizando recurrencia", "Error", "error");
+    }
+  };
+
+  const handleToggleMassSelection = async (massId) => {
+    let nextSelection = [...selectedRecurringMasses];
+    if (nextSelection.includes(massId)) {
+      nextSelection = nextSelection.filter(id => id !== massId);
+    } else {
+      nextSelection.push(massId);
+    }
+    setSelectedRecurringMasses(nextSelection);
+    
+    // Auto-save if recurrence is currently active/confirmed
+    try {
+      await db.confirmRecurrence(user.uid, recurrenceConfirmed, nextSelection);
+      if (onUpdateUser) {
+        onUpdateUser({ ...user, activeRecurrence: recurrenceConfirmed, recurringMasses: nextSelection });
+      }
+    } catch (err) {
+      alerts.alert("Error al actualizar la asignación de misas", "Error", "error");
     }
   };
 
@@ -137,6 +175,38 @@ export default function Profile({ user, onUpdateUser }) {
     return months[nextIdx];
   };
 
+  const renderProfileMassItem = (mass) => {
+    const isSelected = selectedRecurringMasses.includes(mass.id);
+    const dayLabel = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"][mass.dayOfWeek];
+    
+    return (
+      <div 
+        key={mass.id} 
+        onClick={() => handleToggleMassSelection(mass.id)}
+        className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
+          isSelected 
+            ? "bg-primary/10 border-primary/40 text-white" 
+            : "bg-white/5 border-white/5 text-on-surface-variant hover:bg-white/[0.08]"
+        }`}
+      >
+        <div className="min-w-0 flex-1 pr-2">
+          <p className="text-[11px] font-bold text-white truncate">{mass.title}</p>
+          <p className="text-[9px] text-on-surface-variant font-semibold mt-0.5">
+            {dayLabel} a las {mass.time}
+          </p>
+        </div>
+        <div className="shrink-0 flex items-center">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => {}} // handled by click on container
+            className="w-3.5 h-3.5 rounded border-white/10 bg-white/5 text-primary focus:ring-primary pointer-events-none"
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex-grow py-8 max-w-7xl mx-auto w-full px-container-padding-mobile md:px-container-padding-desktop font-sans pb-24 md:pb-8">
       {/* Header Profile Section */}
@@ -201,7 +271,6 @@ export default function Profile({ user, onUpdateUser }) {
 
         {/* Left Column: Role dependent actions */}
         <div className="lg:col-span-4 flex flex-col gap-6">
-
           {/* Altar Server Recurrence Confirmation */}
           {user.role === "monaguillo" && (
             <div className="glass-card p-6 rounded-3xl border border-white/10 shadow-lg border-l-4 border-l-secondary">
@@ -212,7 +281,7 @@ export default function Profile({ user, onUpdateUser }) {
               <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
                 Confirma tu disponibilidad para renovar tus horarios recurrentes el mes siguiente.
               </p>
-              <div className="flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/5 rounded-xl">
+              <div className="flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/5 rounded-xl mb-4">
                 <span className="text-xs font-bold text-on-surface">Confirmar Asistencia</span>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -224,7 +293,44 @@ export default function Profile({ user, onUpdateUser }) {
                   <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
               </div>
-              <p className="text-[10px] text-on-surface-variant/70 italic mt-3 text-center">
+
+              {/* Recurring masses selection list */}
+              <div className="border-t border-white/10 pt-4 space-y-4">
+                <span className="font-bold text-secondary text-[11px] uppercase tracking-wider block mb-1">Mis Misas Recurrentes</span>
+                {parishRecurringMasses.length === 0 ? (
+                  <p className="text-[11px] text-on-surface-variant/70 italic">No hay misas recurrentes configuradas.</p>
+                ) : (
+                  <div className="space-y-4 max-h-72 overflow-y-auto no-scrollbar pr-1">
+                    {/* Morning Masses */}
+                    {parishRecurringMasses.filter(m => m.time < "12:00").length > 0 && (
+                      <div>
+                        <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider mb-2 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px] text-amber-400">light_mode</span>
+                          Mañana (AM)
+                        </span>
+                        <div className="space-y-1.5">
+                          {parishRecurringMasses.filter(m => m.time < "12:00").map(mass => renderProfileMassItem(mass))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Afternoon Masses */}
+                    {parishRecurringMasses.filter(m => m.time >= "12:00").length > 0 && (
+                      <div>
+                        <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider mb-2 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px] text-indigo-400">dark_mode</span>
+                          Tarde / Noche (PM)
+                        </span>
+                        <div className="space-y-1.5">
+                          {parishRecurringMasses.filter(m => m.time >= "12:00").map(mass => renderProfileMassItem(mass))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <p className="text-[10px] text-on-surface-variant/70 italic mt-4 text-center">
                 * Si no confirmas antes de fin de mes, se liberarán tus turnos recurrentes.
               </p>
             </div>

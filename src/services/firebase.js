@@ -550,15 +550,17 @@ const simulatedDb = {
     return reg;
   },
   
-  confirmRecurrence: async (userUid, confirmStatus) => {
+  confirmRecurrence: async (userUid, confirmStatus, recurringMasses = []) => {
     const users = getStorageItem("joselito_users", {});
     if (users[userUid]) {
       users[userUid].activeRecurrence = confirmStatus;
+      users[userUid].recurringMasses = recurringMasses;
       setStorageItem("joselito_users", users);
       
       // Update global context user
       if (currentSimulatedUser && currentSimulatedUser.uid === userUid) {
         currentSimulatedUser.activeRecurrence = confirmStatus;
+        currentSimulatedUser.recurringMasses = recurringMasses;
         setStorageItem("joselito_current_user", currentSimulatedUser);
       }
     }
@@ -1060,18 +1062,19 @@ export const db = {
     return simulatedDb.checkInForMass(massId, userUid, dateStr);
   },
   
-  confirmRecurrence: async (userUid, confirmStatus) => {
+  confirmRecurrence: async (userUid, confirmStatus, recurringMasses = []) => {
     if (isRealFirebaseEnabled() && realDb) {
       try {
         await updateDoc(doc(realDb, "users", userUid), {
-          activeRecurrence: confirmStatus
+          activeRecurrence: confirmStatus,
+          recurringMasses: recurringMasses
         });
         return;
       } catch (e) {
         return handleFirestoreError(e);
       }
     }
-    return simulatedDb.confirmRecurrence(userUid, confirmStatus);
+    return simulatedDb.confirmRecurrence(userUid, confirmStatus, recurringMasses);
   },
   
   createMass: async (massData) => {
