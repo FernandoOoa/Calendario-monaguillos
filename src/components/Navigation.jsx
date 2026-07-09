@@ -14,9 +14,11 @@ export default function Navigation({ user, currentView, onViewChange, onLogout }
             onClick={() => onViewChange("home")}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
-            <span className="material-symbols-outlined text-secondary text-2xl group-hover:scale-110 transition-transform" style={{ fontVariationSettings: "'FILL' 1" }}>
-              church
-            </span>
+            <img 
+              src="/favicon.png" 
+              alt="Joselito Logo" 
+              className="w-7 h-7 rounded-lg group-hover:scale-110 transition-transform object-cover" 
+            />
             <span className="font-sans font-bold text-lg tracking-tight text-white group-hover:text-secondary transition-colors">
               Joselito
             </span>

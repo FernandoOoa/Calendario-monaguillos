@@ -181,11 +181,11 @@ export default function Auth({ onAuthSuccess }) {
         
         {/* Top Header */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center border border-primary/30">
-            <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-              church
-            </span>
-          </div>
+          <img 
+            src="/apple-touch-icon.png" 
+            alt="Joselito Logo" 
+            className="w-10 h-10 rounded-xl object-cover border border-white/10" 
+          />
           <div>
             <span className="text-sm font-bold tracking-tight text-white">Joselito</span>
           </div>
@@ -217,11 +217,11 @@ export default function Auth({ onAuthSuccess }) {
           
           {/* Logo (Mobile Only) */}
           <div className="flex md:hidden flex-col items-center gap-3 text-center mb-8">
-            <div className="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30">
-              <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                church
-              </span>
-            </div>
+            <img 
+              src="/apple-touch-icon.png" 
+              alt="Joselito Logo" 
+              className="w-16 h-16 rounded-2xl object-cover border border-white/10" 
+            />
             <div>
               <h1 className="text-xl font-bold text-white tracking-tight">Joselito</h1>
               <p className="text-[10px] text-white/50 mt-0.5 font-semibold">Calendario y Asistencia de Monaguillos</p>
