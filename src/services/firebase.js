@@ -1746,36 +1746,73 @@ export const db = {
   },
 
   getAllUsers: async () => {
+    if (isRealFirebaseEnabled() && realDb) {
+      try {
+        const snap = await getDocs(collection(realDb, "users"));
+        const usersList = snap.docs.map(doc => doc.data());
+        // Merge with local simulated users if needed
+        const localUsers = Object.values(getStorageItem("joselito_users", {}));
+        const combined = [...usersList];
+        localUsers.forEach(lu => {
+          if (!combined.some(u => u.uid === lu.uid || u.email === lu.email)) {
+            combined.push(lu);
+          }
+        });
+        return combined;
+      } catch (e) {
+        console.error("Error fetching users from Firestore:", e);
+      }
+    }
     const usersObj = getStorageItem("joselito_users", {});
     return Object.values(usersObj);
   },
 
   updateUserRole: async (uid, newRole) => {
+    if (isRealFirebaseEnabled() && realDb) {
+      try {
+        await updateDoc(doc(realDb, "users", uid), { role: newRole });
+      } catch (e) {
+        console.error("Error updating user role in Firestore:", e);
+      }
+    }
     const usersObj = getStorageItem("joselito_users", {});
     if (usersObj[uid]) {
       usersObj[uid].role = newRole;
       setStorageItem("joselito_users", usersObj);
-      addAuditLog("Cambio de Rol", "Usuarios", `Se cambió el rol de ${usersObj[uid].name} a ${newRole}`, "admin");
     }
+    addAuditLog("Cambio de Rol", "Usuarios", `Se cambió el rol del usuario ${uid} a ${newRole}`, "admin");
   },
 
   updateUserLevel: async (uid, newLevel) => {
+    if (isRealFirebaseEnabled() && realDb) {
+      try {
+        await updateDoc(doc(realDb, "users", uid), { level: Number(newLevel) });
+      } catch (e) {
+        console.error("Error updating user level in Firestore:", e);
+      }
+    }
     const usersObj = getStorageItem("joselito_users", {});
     if (usersObj[uid]) {
       usersObj[uid].level = Number(newLevel);
       setStorageItem("joselito_users", usersObj);
-      addAuditLog("Cambio de Nivel", "Usuarios", `Se actualizó el nivel de ${usersObj[uid].name} a Nivel ${newLevel}`, "admin");
     }
+    addAuditLog("Cambio de Nivel", "Usuarios", `Se actualizó el nivel del monaguillo ${uid} a Nivel ${newLevel}`, "admin");
   },
 
   deleteUser: async (uid) => {
+    if (isRealFirebaseEnabled() && realDb) {
+      try {
+        await deleteDoc(doc(realDb, "users", uid));
+      } catch (e) {
+        console.error("Error deleting user from Firestore:", e);
+      }
+    }
     const usersObj = getStorageItem("joselito_users", {});
     if (usersObj[uid]) {
-      const userName = usersObj[uid].name;
       delete usersObj[uid];
       setStorageItem("joselito_users", usersObj);
-      addAuditLog("Eliminación de Usuario", "Usuarios", `Se eliminó al usuario ${userName}`, "admin");
     }
+    addAuditLog("Eliminación de Usuario", "Usuarios", `Se eliminó al usuario ${uid}`, "admin");
   }
 };
 
