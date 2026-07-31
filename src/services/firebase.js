@@ -901,6 +901,52 @@ const simulatedDb = {
     setStorageItem("joselito_users", users);
     setStorageItem("joselito_current_user", finalProfile);
     return finalProfile;
+  },
+
+  resetUserData: (uid) => {
+    const users = getStorageItem("joselito_users", {});
+    const user = users[uid];
+    if (!user) return null;
+
+    const updatedUser = {
+      ...user,
+      level: user.role === "monaguillo" ? 1 : (user.level || 1),
+      servedCount: 0,
+      punctuality: 100,
+      activeRecurrence: false,
+      recurringMasses: [],
+      childEmails: user.role === "padre" ? [] : (user.childEmails || []),
+      linkedParentUid: null
+    };
+
+    users[uid] = updatedUser;
+    setStorageItem("joselito_users", users);
+
+    const curr = getStorageItem("joselito_current_user", null);
+    if (curr && curr.uid === uid) {
+      setStorageItem("joselito_current_user", updatedUser);
+    }
+
+    let regs = getStorageItem("joselito_registrations", []);
+    regs = regs.filter(r => r.userUid !== uid);
+    setStorageItem("joselito_registrations", regs);
+
+    let notifs = getStorageItem("joselito_notifications", []);
+    notifs = notifs.filter(n => n.userUid !== uid);
+    setStorageItem("joselito_notifications", notifs);
+
+    let history = getStorageItem("joselito_history", []);
+    history = history.filter(h => h.userUid !== uid);
+    setStorageItem("joselito_history", history);
+
+    addAuditLog(
+      "Reinicio de Datos",
+      "Usuarios",
+      `Se reiniciaron todos los datos del usuario ${user.name || ''} ${user.lastName || ''} (${uid}) a su estado inicial`,
+      "sistema"
+    );
+
+    return updatedUser;
   }
 };
 
@@ -1901,6 +1947,45 @@ export const db = {
       setStorageItem("joselito_users", usersObj);
     }
     addAuditLog("Eliminación de Usuario", "Usuarios", `Se eliminó al usuario ${uid}`, "admin");
+  },
+
+  resetUserData: async (uid) => {
+    if (isRealFirebaseEnabled() && realDb) {
+      try {
+        const userRef = doc(realDb, "users", uid);
+        const snap = await getDoc(userRef);
+        if (snap.exists()) {
+          const uData = snap.data();
+          await updateDoc(userRef, {
+            servedCount: 0,
+            punctuality: 100,
+            level: uData.role === "monaguillo" ? 1 : (uData.level || 1),
+            activeRecurrence: false,
+            recurringMasses: [],
+            childEmails: uData.role === "padre" ? [] : (uData.childEmails || []),
+            linkedParentUid: null
+          });
+        }
+        const qRegs = query(collection(realDb, "registrations"), where("userUid", "==", uid));
+        const regsSnap = await getDocs(qRegs);
+        const deleteRegPromises = regsSnap.docs.map(d => deleteDoc(doc(realDb, "registrations", d.id)));
+        await Promise.all(deleteRegPromises);
+
+        const qNotifs = query(collection(realDb, "notifications"), where("userUid", "==", uid));
+        const notifsSnap = await getDocs(qNotifs);
+        const deleteNotifPromises = notifsSnap.docs.map(d => deleteDoc(doc(realDb, "notifications", d.id)));
+        await Promise.all(deleteNotifPromises);
+
+        const qHist = query(collection(realDb, "history"), where("userUid", "==", uid));
+        const histSnap = await getDocs(qHist);
+        const deleteHistPromises = histSnap.docs.map(d => deleteDoc(doc(realDb, "history", d.id)));
+        await Promise.all(deleteHistPromises);
+      } catch (e) {
+        console.error("Error resetting user data in Firestore:", e);
+      }
+    }
+
+    return simulatedDb.resetUserData(uid);
   }
 };
 

@@ -66,6 +66,22 @@ export default function UserManagement() {
     }
   };
 
+  const handleResetUser = async (user) => {
+    const ok = await alerts.confirm(
+      `¿Estás seguro de que deseas reiniciar todos los datos de "${user.name} ${user.lastName}"? Se restablecerán sus estadísticas, nivel (a 1), historial, inscripciones y notificaciones como si fuera un usuario nuevo.`,
+      "Reiniciar Datos de Usuario"
+    );
+    if (!ok) return;
+    try {
+      await db.resetUserData(user.uid);
+      alerts.alert(`Datos de ${user.name} reiniciados con éxito como un usuario nuevo.`, "Usuario Reiniciado", "success");
+      loadUsers();
+      window.dispatchEvent(new Event("mass-state-updated"));
+    } catch (err) {
+      alerts.alert(err.message || "Error al reiniciar los datos.", "Error al reiniciar", "error");
+    }
+  };
+
   const filteredUsers = users.filter(user => {
     const nameMatch = `${user.name} ${user.lastName} ${user.email}`.toLowerCase().includes(searchQuery.toLowerCase());
     const roleMatch = roleFilter === "all" || user.role === roleFilter;
@@ -129,7 +145,6 @@ export default function UserManagement() {
             </thead>
             <tbody className="divide-y divide-white/5 text-gray-200">
               {filteredUsers.map((user) => {
-                // Find parent of this monaguillo if linked
                 let parentUser = null;
                 if (user.role === "monaguillo" && user.linkedParentUid) {
                   parentUser = users.find(u => u.uid === user.linkedParentUid);
@@ -217,14 +232,25 @@ export default function UserManagement() {
                       <button
                         onClick={() => handleStartEdit(user)}
                         className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-lg transition-colors border border-white/10 flex items-center gap-1 inline-flex"
+                        title="Editar rol/nivel"
                       >
                         <span className="material-symbols-outlined text-[14px]">edit</span>
                         Editar
                       </button>
 
                       <button
+                        onClick={() => handleResetUser(user)}
+                        className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold rounded-lg transition-colors border border-amber-500/30 flex items-center gap-1 inline-flex"
+                        title="Reiniciar datos como nuevo usuario"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">restart_alt</span>
+                        Reiniciar
+                      </button>
+
+                      <button
                         onClick={() => handleDeleteUser(user)}
                         className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold rounded-lg transition-colors border border-red-500/30 flex items-center gap-1 inline-flex"
+                        title="Eliminar usuario completamente"
                       >
                         <span className="material-symbols-outlined text-[14px]">delete</span>
                         Eliminar

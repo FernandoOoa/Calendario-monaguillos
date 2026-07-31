@@ -161,6 +161,26 @@ export default function Profile({ user, onUpdateUser }) {
     }
   };
 
+  const handleResetOwnAccount = async () => {
+    const ok = await alerts.confirm(
+      "¿Estás seguro de que deseas reiniciar todos los datos de tu cuenta? Se restablecerán tus estadísticas (0 misas, 100% puntualidad, nivel 1), inscripciones a misas, historial y notificaciones como si fueras un usuario totalmente nuevo.",
+      "Reiniciar mi Cuenta"
+    );
+    if (!ok) return;
+    try {
+      const updatedUser = await db.resetUserData(user.uid);
+      alerts.alert("Tus datos han sido reiniciados correctamente.", "Cuenta Reiniciada", "success");
+      if (onUpdateUser && updatedUser) {
+        onUpdateUser(updatedUser);
+      }
+      loadProfileData();
+      window.dispatchEvent(new Event("mass-state-updated"));
+      window.dispatchEvent(new Event("notifications-updated"));
+    } catch (err) {
+      alerts.alert(err.message || "Error al reiniciar la cuenta.", "Error", "error");
+    }
+  };
+
   // Determine next month name dynamically
   const getNextMonthName = () => {
     const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
@@ -507,6 +527,26 @@ export default function Profile({ user, onUpdateUser }) {
               )}
             </div>
           )}
+        </div>
+
+        {/* Reset Account Data Section */}
+        <div className="glass-card p-6 border border-amber-500/20 bg-amber-500/5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+              <span className="material-symbols-outlined text-2xl">restart_alt</span>
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-sm">Reiniciar Datos de Usuario</h3>
+              <p className="text-xs text-on-surface-variant">Restablece tus estadísticas, nivel, inscripciones e historial a su estado inicial como si fueras un usuario nuevo.</p>
+            </div>
+          </div>
+          <button
+            onClick={handleResetOwnAccount}
+            className="px-4 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs rounded-xl border border-amber-500/30 transition-all flex items-center gap-2 shrink-0 self-end sm:self-auto"
+          >
+            <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+            Reiniciar mis datos
+          </button>
         </div>
 
       </div>
