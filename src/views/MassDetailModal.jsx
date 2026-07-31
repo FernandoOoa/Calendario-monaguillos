@@ -10,12 +10,30 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
   const [checkInStatusText, setCheckInStatusText] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Parent profile state
+  const [parentChildren, setParentChildren] = useState([]);
+  const [selectedChildUid, setSelectedChildUid] = useState("");
+
   const fetchRegistrations = async () => {
     try {
       const list = await db.getMassAttendance(mass.id, dateStr);
       setRegistrations(list);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const loadParentChildren = async () => {
+    if (user.role === "padre") {
+      try {
+        const list = await db.getChildrenForParent(user.uid);
+        setParentChildren(list);
+        if (list.length > 0) {
+          setSelectedChildUid(list[0].uid);
+        }
+      } catch (e) {
+        console.error("Error loading children for parent:", e);
+      }
     }
   };
 
@@ -46,11 +64,13 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
   useEffect(() => {
     fetchRegistrations();
     checkCheckInWindow();
+    loadParentChildren();
 
     // Listen to time shifts or state updates
     const handleUpdate = () => {
       fetchRegistrations();
       checkCheckInWindow();
+      loadParentChildren();
     };
     
     window.addEventListener("mass-state-updated", handleUpdate);
@@ -70,6 +90,44 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
       window.dispatchEvent(new Event("mass-state-updated"));
     } catch (err) {
       alerts.alert(err.message, "Error al anotarse", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleParentRegisterChild = async () => {
+    const child = parentChildren.find(c => c.uid === selectedChildUid);
+    if (!child) {
+      alerts.alert("Selecciona un hijo para inscribir.", "Selección requerida", "warning");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await db.registerForMass(mass.id, child, "Monaguillo", dateStr);
+      alerts.alert(`¡${child.name} ha sido anotado/a con éxito para la misa!`, "Inscripción Realizada", "success");
+      window.dispatchEvent(new Event("mass-state-updated"));
+    } catch (err) {
+      alerts.alert(err.message, "Error al anotar al hijo", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleParentCancelChild = async () => {
+    const child = parentChildren.find(c => c.uid === selectedChildUid);
+    if (!child) return;
+
+    const ok = await alerts.confirm(`¿Estás seguro de cancelar el turno de ${child.name} para esta misa?`, "Cancelar Turno");
+    if (!ok) return;
+
+    setLoading(true);
+    try {
+      await db.cancelMassRegistration(mass.id, child.uid, dateStr);
+      alerts.alert(`El turno de ${child.name} ha sido cancelado.`, "Cancelación Completada", "info");
+      window.dispatchEvent(new Event("mass-state-updated"));
+    } catch (err) {
+      alerts.alert(err.message, "Error al cancelar turno", "error");
     } finally {
       setLoading(false);
     }
@@ -445,10 +503,85 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
             </>
           )}
 
-          {user.role !== "monaguillo" && (
+          {user.role === "padre" && (
+            <div className="space-y-3">
+              {parentChildren.length > 0 ? (
+                <div className="space-y-2 bg-white/5 p-3.5 rounded-2xl border border-white/10">
+                  <label className="block text-xs font-bold text-secondary uppercase tracking-wider">
+                    Inscribir o Gestionar Turno de un Hijo:
+                  </label>
+                  <select
+                    value={selectedChildUid}
+                    onChange={(e) => setSelectedChildUid(e.target.value)}
+                    className="w-full bg-[#1c1c1c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-secondary font-bold"
+                  >
+                    {parentChildren.map(c => (
+                      <option key={c.uid} value={c.uid}>
+                        {c.name} {c.lastName} ({c.email})
+                      </option>
+                    ))}
+                  </select>
+
+                  {(() => {
+                    const selectedChildReg = registrations.find(r => r.userUid === selectedChildUid && r.status !== "cancelled");
+                    const selectedChild = parentChildren.find(c => c.uid === selectedChildUid);
+                    const childName = selectedChild ? selectedChild.name : "Hijo";
+
+                    if (hasStarted) {
+                      return (
+                        <div className="text-center text-xs font-bold py-2.5 px-3 rounded-xl bg-white/5 text-gray-400 border border-white/10">
+                          Esta celebración ya inició o finalizó.
+                        </div>
+                      );
+                    }
+
+                    if (selectedChildReg) {
+                      return (
+                        <button
+                          onClick={handleParentCancelChild}
+                          disabled={loading}
+                          className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 font-bold py-3 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">cancel</span>
+                          CANCELAR TURNO DE {childName.toUpperCase()}
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <button
+                        onClick={handleParentRegisterChild}
+                        disabled={loading}
+                        className="w-full bg-secondary text-black font-extrabold py-3 rounded-xl hover:bg-secondary/90 transition-all text-xs flex items-center justify-center gap-1.5 shadow-lg"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">person_add</span>
+                        ANOTAR A {childName.toUpperCase()} A ESTA MISA
+                      </button>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <div className="bg-amber-500/10 border border-amber-500/20 text-amber-300 p-3.5 rounded-2xl text-xs flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-amber-400">warning</span>
+                    <span>No tienes hijos vinculados aún para anotar.</span>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={onClose}
+                className="w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold text-xs transition-colors"
+              >
+                CERRAR
+              </button>
+            </div>
+          )}
+
+          {user.role === "admin" && (
             <button
               onClick={onClose}
-              className="w-full bg-primary text-white py-4 rounded-xl font-extrabold text-sm hover:bg-primary/90 transition-colors"
+              className="w-full bg-primary text-white py-3.5 rounded-xl font-extrabold text-sm hover:bg-primary/90 transition-colors"
             >
               CERRAR
             </button>
