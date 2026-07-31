@@ -135,57 +135,29 @@ export default function Profile({ user, onUpdateUser }) {
     setChildFormError("");
     setChildFormSuccess("");
 
-    if (!newChildEmail.trim()) return;
+    const targetEmail = newChildEmail.trim().toLowerCase();
+    if (!targetEmail) return;
 
     try {
-      // Create relationship
-      const users = JSON.parse(localStorage.getItem("joselito_users") || "{}");
-
-      // Update parent childEmails list
-      const parentUser = users[user.uid];
-      if (!parentUser.childEmails) parentUser.childEmails = [];
-
-      if (parentUser.childEmails.includes(newChildEmail)) {
-        setChildFormError("Este correo ya está en tu lista.");
+      if (user.childEmails && user.childEmails.includes(targetEmail)) {
+        setChildFormError("Este correo ya está en tu lista de hijos vinculados.");
         return;
       }
 
-      parentUser.childEmails.push(newChildEmail);
-      users[user.uid] = parentUser;
-
-      // Check if child user exists
-      const childUser = Object.values(users).find(u => u.email.toLowerCase() === newChildEmail.toLowerCase());
-      if (childUser) {
-        childUser.linkedParentUid = user.uid;
-        users[childUser.uid] = childUser;
-        setChildFormSuccess(`¡Hijo vinculado exitosamente! Perfil activo.`);
-      } else {
-        // Pre-create child pending account
-        const childUid = `child-uid-${Date.now()}`;
-        users[childUid] = {
-          uid: childUid,
-          email: newChildEmail,
-          name: "Pendiente",
-          lastName: "Registro",
-          role: "monaguillo",
-          level: 1,
-          servedCount: 0,
-          punctuality: 100,
-          isPendingSignUp: true,
-          linkedParentUid: user.uid
-        };
-        setChildFormSuccess(`Hijo registrado. Esperando que cree su cuenta con: ${newChildEmail}`);
-      }
-
-      localStorage.setItem("joselito_users", JSON.stringify(users));
+      const updatedParent = await db.addChildToParent(user.uid, targetEmail);
+      setChildFormSuccess(`¡Hijo vinculado con éxito! (${targetEmail})`);
       setNewChildEmail("");
       loadProfileData();
 
       if (onUpdateUser) {
-        onUpdateUser(parentUser);
+        onUpdateUser({
+          ...user,
+          childEmails: updatedParent.childEmails || [...(user.childEmails || []), targetEmail]
+        });
       }
     } catch (err) {
-      setChildFormError("Error al registrar hijo.");
+      console.error("Error linking child:", err);
+      setChildFormError(err.message || "Error al vincular el correo del hijo.");
     }
   };
 

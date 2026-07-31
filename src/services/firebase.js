@@ -1480,6 +1480,14 @@ export const db = {
     if (isRealFirebaseEnabled() && realDb) {
       try {
         const querySnapshot = await getDocs(collection(realDb, "masses"));
+        if (querySnapshot.empty) {
+          for (const m of DEFAULT_MASSES) {
+            const { id, ...massData } = m;
+            await setDoc(doc(realDb, "masses", id), massData);
+          }
+          const newSnap = await getDocs(collection(realDb, "masses"));
+          return newSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
         return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       } catch (e) {
         return handleFirestoreError(e);
@@ -1676,6 +1684,86 @@ export const db = {
       }
     }
     return simulatedDb.getChildrenForParent(parentUid);
+  },
+
+  addChildToParent: async (parentUid, childEmail) => {
+    const cleanEmail = childEmail.trim().toLowerCase();
+    if (isRealFirebaseEnabled() && realDb) {
+      try {
+        const parentRef = doc(realDb, "users", parentUid);
+        const parentSnap = await getDoc(parentRef);
+        let updatedChildEmails = [];
+        if (parentSnap.exists()) {
+          const parentData = parentSnap.data();
+          updatedChildEmails = parentData.childEmails || [];
+          if (!updatedChildEmails.includes(cleanEmail)) {
+            updatedChildEmails.push(cleanEmail);
+            await updateDoc(parentRef, { childEmails: updatedChildEmails });
+          }
+        }
+
+        // Link child if exists in Firestore or pre-create pending
+        const qChild = query(collection(realDb, "users"), where("email", "==", cleanEmail));
+        const childSnap = await getDocs(qChild);
+        if (childSnap.empty) {
+          const childUid = `child-uid-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+          await setDoc(doc(realDb, "users", childUid), {
+            uid: childUid,
+            email: cleanEmail,
+            name: "Pendiente",
+            lastName: "Registro",
+            role: "monaguillo",
+            level: 1,
+            servedCount: 0,
+            punctuality: 100,
+            isPendingSignUp: true,
+            linkedParentUid: parentUid
+          });
+        } else {
+          const childDoc = childSnap.docs[0];
+          await updateDoc(doc(realDb, "users", childDoc.id), {
+            linkedParentUid: parentUid
+          });
+        }
+
+        addAuditLog("Vínculo Familiar", "Usuarios", `Tutor ${parentUid} vinculó al hijo ${cleanEmail}`, parentUid);
+        return { childEmails: updatedChildEmails };
+      } catch (e) {
+        console.error("Error linking child in Firestore:", e);
+      }
+    }
+
+    // Local simulation fallback
+    const users = getStorageItem("joselito_users", {});
+    const parentUser = users[parentUid] || { uid: parentUid, childEmails: [] };
+    if (!parentUser.childEmails) parentUser.childEmails = [];
+    if (!parentUser.childEmails.includes(cleanEmail)) {
+      parentUser.childEmails.push(cleanEmail);
+    }
+    users[parentUid] = parentUser;
+
+    const childUser = Object.values(users).find(u => u.email?.toLowerCase() === cleanEmail);
+    if (childUser) {
+      childUser.linkedParentUid = parentUid;
+      users[childUser.uid] = childUser;
+    } else {
+      const childUid = `child-uid-${Date.now()}`;
+      users[childUid] = {
+        uid: childUid,
+        email: cleanEmail,
+        name: "Pendiente",
+        lastName: "Registro",
+        role: "monaguillo",
+        level: 1,
+        servedCount: 0,
+        punctuality: 100,
+        isPendingSignUp: true,
+        linkedParentUid: parentUid
+      };
+    }
+    setStorageItem("joselito_users", users);
+    addAuditLog("Vínculo Familiar", "Usuarios", `Tutor ${parentUid} vinculó al hijo ${cleanEmail}`, parentUid);
+    return parentUser;
   },
   
   createUserProfile: async (uid, email, name, lastName, role, childEmails = []) => {
