@@ -1,6 +1,17 @@
 /**
- * Generates an .ics file download or Google Calendar link for a specific mass.
+ * Generates an .ics file download or Google Calendar link for a specific mass using exact local time.
  */
+
+const pad = (n) => String(n).padStart(2, "0");
+
+const formatLocalISO = (d) => {
+  const year = d.getFullYear();
+  const month = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+  return `${year}${month}${day}T${hours}${minutes}00`;
+};
 
 export function generateGoogleCalendarUrl(mass, dateStr) {
   if (!mass || !dateStr) return "";
@@ -8,10 +19,12 @@ export function generateGoogleCalendarUrl(mass, dateStr) {
   const [year, month, day] = dateStr.split("-").map(Number);
   const [hour, minute] = mass.time.split(":").map(Number);
 
-  const startDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
-  const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour duration
+  // Exact local start and end time (1 hour mass duration)
+  const startDate = new Date(year, month - 1, day, hour, minute);
+  const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
-  const formatUtc = (d) => d.toISOString().replace(/-|:|\.\d+/g, "");
+  const startFormatted = formatLocalISO(startDate);
+  const endFormatted = formatLocalISO(endDate);
 
   const title = encodeURIComponent(`${mass.title} - Servicio de Monaguillos`);
   const details = encodeURIComponent(
@@ -19,9 +32,7 @@ export function generateGoogleCalendarUrl(mass, dateStr) {
   );
   const location = encodeURIComponent("Parroquia El Padre Eterno - Templo Parroquial");
 
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formatUtc(
-    startDate
-  )}/${formatUtc(endDate)}&details=${details}&location=${location}`;
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startFormatted}/${endFormatted}&details=${details}&location=${location}`;
 }
 
 export function downloadIcsFile(mass, dateStr) {
@@ -30,10 +41,11 @@ export function downloadIcsFile(mass, dateStr) {
   const [year, month, day] = dateStr.split("-").map(Number);
   const [hour, minute] = mass.time.split(":").map(Number);
 
-  const startDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  const startDate = new Date(year, month - 1, day, hour, minute);
   const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
-  const formatUtc = (d) => d.toISOString().replace(/-|:|\.\d+/g, "");
+  const startFormatted = formatLocalISO(startDate);
+  const endFormatted = formatLocalISO(endDate);
 
   const icsContent = [
     "BEGIN:VCALENDAR",
@@ -43,9 +55,9 @@ export function downloadIcsFile(mass, dateStr) {
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
     `UID:mass-${mass.id}-${dateStr}@joselito.parroquia`,
-    `DTSTAMP:${formatUtc(new Date())}`,
-    `DTSTART:${formatUtc(startDate)}`,
-    `DTEND:${formatUtc(endDate)}`,
+    `DTSTAMP:${formatLocalISO(new Date())}`,
+    `DTSTART:${startFormatted}`,
+    `DTEND:${endFormatted}`,
     `SUMMARY:${mass.title} - Servicio de Monaguillos`,
     `DESCRIPTION:Celebración Litúrgica (${mass.type}). ${mass.notes || ""}`,
     "LOCATION:Parroquia El Padre Eterno",
