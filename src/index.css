@@ -2,23 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Forced Dark Theme Overrides to guarantee legibility and dark background */
+/* Custom HSL Design Tokens for Sacred Theme */
+:root {
+  --color-sacred-crimson: 4 80% 40%;
+  --color-divine-gold: 45 65% 52%;
+  --color-bg-dark: 0 0% 5%;
+  --color-surface-card: 0 0% 10%;
+  --color-text-main: 0 0% 98%;
+  --color-text-muted: 0 0% 75%;
+}
+
+/* Forced Dark Theme Overrides for high-contrast legibility */
 html,
 body,
 #root,
 .bg-background,
 .min-h-screen {
   background-color: #0c0c0c !important;
-  color: #ffffff !important;
+  color: #fcfcfc !important;
 }
 
-/* Ensure text colors are high contrast */
+/* WCAG 2.1 AA High Contrast Text Classes */
 .text-on-surface {
   color: #ffffff !important;
 }
 
 .text-on-surface-variant {
-  color: #a3a3a3 !important;
+  color: #bfbfbf !important; /* High-contrast 4.5:1 ratio */
 }
 
 .text-white {
@@ -34,47 +44,55 @@ body,
 }
 
 .text-gray-400 {
-  color: #94a3b8 !important;
+  color: #a3a3a3 !important;
 }
 
 .text-secondary {
-  color: #d4af37 !important; /* Gold */
+  color: #d4af37 !important; /* Divine Gold */
 }
 
-/* Force dark card and container backgrounds */
+/* Glassmorphism Card System */
 .glass-card {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-radius: 1.25rem;
 }
 
+.glass-card-hover {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212, 175, 55, 0.4) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3), 0 0 12px rgba(212, 175, 55, 0.1);
+}
+
+/* Container Background Tokens */
 .bg-surface-container {
-  background-color: #1c1c1c !important;
-}
-
-.bg-surface-container-low {
-  background-color: #161616 !important;
-}
-
-.bg-surface-container-high {
-  background-color: #222222 !important;
-}
-
-.bg-surface-dim {
-  background-color: #121212 !important;
-}
-
-.bg-surface-bright {
   background-color: #1a1a1a !important;
 }
 
+.bg-surface-container-low {
+  background-color: #141414 !important;
+}
+
+.bg-surface-container-high {
+  background-color: #242424 !important;
+}
+
+.bg-surface-dim {
+  background-color: #111111 !important;
+}
+
 .border-outline {
-  border-color: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
 }
 
 .border-outline-variant {
-  border-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 @layer base {
@@ -87,35 +105,34 @@ body,
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   font-feature-settings: "liga";
-}
-
-/* Liturgical shadows and effects */
-.liturgical-shadow {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.04);
-}
-
-.card-shadow {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 0 2px rgba(0, 0, 0, 0.04);
-}
-
-.modal-blur {
-  backdrop-filter: blur(8px);
-}
-
-.glass-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* Ambient Glow Utilities */
 .bg-glow-primary {
-  background: radial-gradient(circle, rgba(184, 32, 20, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+  background: radial-gradient(circle, rgba(184, 32, 20, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
 }
 
 .bg-glow-secondary {
-  background: radial-gradient(circle, rgba(212, 175, 55, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+}
+
+/* Skeleton Loader Animations */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-box {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s infinite ease-in-out;
+  border-radius: 0.5rem;
 }
 
 /* Pulse Animation */
@@ -138,8 +155,7 @@ body,
   animation: float-pulse 12s ease-in-out infinite;
 }
 
-
-/* No scrollbar utilities */
+/* Hide scrollbar utilities */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -149,18 +165,6 @@ body,
   scrollbar-width: none;
 }
 
-/* Safe area padding for mobile navigation */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-/* Micro-interactions */
-.active-tab {
-  transform: scale(0.95);
-  transition: transform 150ms;
-}
-
-/* Switch styling helper */
-.peer-checked\:after\:translate-x-full:checked + div::after {
-  transform: translateX(100%);
 }

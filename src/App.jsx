@@ -8,32 +8,23 @@ import Dashboard from "./views/Dashboard";
 import Home from "./views/Home";
 import MassDetailModal from "./views/MassDetailModal";
 import Profile from "./views/Profile";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { LiturgicalProvider, useLiturgical } from "./context/LiturgicalContext";
 
-export default function App() {
-  const [user, setUser] = useState(null);
+function MainApp() {
+  const { user, loading, handleAuthSuccess, logout, updateUser } = useAuth();
+  const { selectedMass, selectedMassDateStr, openMassDetail, closeMassDetail } = useLiturgical();
   const [currentView, setCurrentView] = useState("home"); // 'home', 'dashboard', 'profile', 'admin'
-  const [selectedMass, setSelectedMass] = useState(null);
-  const [selectedMassDateStr, setSelectedMassDateStr] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen to Firebase/Simulated authentication changes
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-      setUser(firebaseUser);
-      setLoading(false);
-
-      // Default views based on roles
-      if (firebaseUser) {
-        if (firebaseUser.role === "admin") {
-          setCurrentView("admin");
-        } else {
-          setCurrentView("home");
-        }
+    if (user) {
+      if (user.role === "admin") {
+        setCurrentView("admin");
+      } else {
+        setCurrentView("home");
       }
-    });
-
-    return () => unsubscribe();
-  }, []);
+    }
+  }, [user]);
 
   useEffect(() => {
     const handleOpenDetail = async (e) => {
@@ -42,7 +33,7 @@ export default function App() {
         const allMasses = await db.getAllMasses();
         const mass = allMasses.find(m => m.id === massId);
         if (mass) {
-          handleSelectMass(mass, date);
+          openMassDetail(mass, date);
         }
       } catch (err) {
         console.error("Error opening mass detail from event:", err);
@@ -50,46 +41,14 @@ export default function App() {
     };
     window.addEventListener("open-mass-detail", handleOpenDetail);
     return () => window.removeEventListener("open-mass-detail", handleOpenDetail);
-  }, []);
-
-  const handleAuthSuccess = (authenticatedUser) => {
-    setUser(authenticatedUser);
-    if (authenticatedUser.role === "admin") {
-      setCurrentView("admin");
-    } else {
-      setCurrentView("home");
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await auth.logout();
-      setUser(null);
-      setCurrentView("home");
-    } catch (e) {
-      console.error("Logout failed", e);
-    }
-  };
-
-  const handleUpdateUser = (updatedUser) => {
-    setUser(updatedUser);
-  };
-
-  const handleSelectMass = (mass, dateStr) => {
-    setSelectedMass(mass);
-    setSelectedMassDateStr(dateStr);
-  };
-
-  const handleCloseMassModal = () => {
-    setSelectedMass(null);
-    setSelectedMassDateStr(null);
-  };
+  }, [openMassDetail]);
 
   if (loading) {
     return (
       <div className="flex-grow flex items-center justify-center min-h-screen bg-background text-primary font-sans font-bold">
         <div className="text-center space-y-4">
-          <span className="material-symbols-outlined text-4xl animate-spin text-primary">church</span>
+          <div className="w-12 h-12 border-4 border-secondary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <span className="material-symbols-outlined text-4xl text-primary block">church</span>
           <p className="text-sm text-on-surface-variant font-medium">Cargando Joselito...</p>
         </div>
       </div>
@@ -112,36 +71,26 @@ export default function App() {
       <div className="fixed top-0 left-1/4 w-[500px] h-[500px] rounded-full bg-glow-primary animate-float-slow pointer-events-none z-0"></div>
       <div className="fixed bottom-0 right-1/4 w-[600px] h-[600px] rounded-full bg-glow-secondary animate-float-slower pointer-events-none z-0"></div>
 
-      {/* Firebase Permission Error Notification Banner */}
-      {user.error && (
-        <div className="bg-error text-white p-3.5 text-center text-xs font-bold flex items-center justify-center gap-2 relative z-50 animate-in fade-in duration-300">
-          <span className="material-symbols-outlined text-[18px]">warning</span>
-          <span>
-            {user.error} (Consola de Firebase ➔ Firestore Database ➔ Reglas ➔ allow read, write: if request.auth != null;)
-          </span>
-        </div>
-      )}
-
       {/* Shared Responsive Header & Mobile Bottom Bar */}
       <Navigation
         user={user}
         currentView={currentView}
         onViewChange={setCurrentView}
-        onLogout={handleLogout}
+        onLogout={logout}
       />
 
-      {/* Main Content Area with Bottom Padding on Mobile for the navbar */}
-      <main className="flex-grow flex flex-col pb-16 md:pb-0">
+      {/* Main Content Area */}
+      <main className="flex-grow flex flex-col pb-16 md:pb-0 relative z-10">
         {currentView === "home" && (
-          <Home user={user} onSelectMass={handleSelectMass} />
+          <Home user={user} onSelectMass={openMassDetail} />
         )}
 
         {currentView === "dashboard" && (
-          <Dashboard user={user} onSelectMass={handleSelectMass} />
+          <Dashboard user={user} onSelectMass={openMassDetail} />
         )}
 
         {currentView === "profile" && (
-          <Profile user={user} onUpdateUser={handleUpdateUser} />
+          <Profile user={user} onUpdateUser={updateUser} />
         )}
 
         {currentView === "admin" && user.role === "admin" && (
@@ -150,7 +99,7 @@ export default function App() {
       </main>
 
       {/* Footer (Desktop Only) */}
-      <footer className="hidden md:block w-full py-8 px-container-padding-desktop bg-surface-container-low border-t border-outline-variant/30 mt-auto">
+      <footer className="hidden md:block w-full py-8 px-container-padding-desktop bg-surface-container-low border-t border-outline-variant/30 mt-auto relative z-10">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-semibold">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>church</span>
@@ -160,8 +109,8 @@ export default function App() {
             © 2026 Joselito Altar Server Management. Parroquia El Padre Eterno.
           </div>
           <div className="flex gap-4 text-on-surface-variant">
-            <a href="#" className="hover:text-primary transition-colors">Soporte</a>
-            <a href="#" className="hover:text-primary transition-colors">Política de Privacidad</a>
+            <a href="#" className="hover:text-primary transition-colors">Soporte Parroquial</a>
+            <a href="#" className="hover:text-primary transition-colors">Términos del Servicio</a>
           </div>
         </div>
       </footer>
@@ -172,11 +121,21 @@ export default function App() {
           mass={selectedMass}
           dateStr={selectedMassDateStr}
           user={user}
-          onClose={handleCloseMassModal}
+          onClose={closeMassDetail}
         />
       )}
 
       <CustomAlertModal />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <LiturgicalProvider>
+        <MainApp />
+      </LiturgicalProvider>
+    </AuthProvider>
   );
 }

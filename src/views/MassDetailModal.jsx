@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { db } from "../services/firebase";
 import { alerts } from "../services/alerts";
 import { formatTimeToAMPM } from "../utils/time";
+import { generateGoogleCalendarUrl, downloadIcsFile } from "../utils/calendarExport";
 
 export default function MassDetailModal({ mass, dateStr, user, onClose }) {
   const [registrations, setRegistrations] = useState([]);
@@ -199,6 +200,30 @@ export default function MassDetailModal({ mass, dateStr, user, onClose }) {
               <p className="text-sm text-gray-200 leading-relaxed">{mass.notes}</p>
             </div>
           )}
+
+          {/* Personal Calendar Sync Export */}
+          <div className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-gray-300">
+              <span className="material-symbols-outlined text-secondary">calendar_add_on</span>
+              <span>Guarda esta celebración en tu agenda personal:</span>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <a
+                href={generateGoogleCalendarUrl(mass, dateStr)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 sm:flex-initial px-3 py-1.5 bg-secondary/20 hover:bg-secondary/30 text-secondary border border-secondary/40 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1"
+              >
+                Google Calendar
+              </a>
+              <button
+                onClick={() => downloadIcsFile(mass, dateStr)}
+                className="flex-1 sm:flex-initial px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl transition-all border border-white/10 flex items-center justify-center gap-1"
+              >
+                iCal / Outlook (.ics)
+              </button>
+            </div>
+          </div>
 
           {/* Notification Alert Banner */}
           <section className="bg-primary/20 text-white p-5 rounded-2xl flex items-start gap-3.5 border border-primary/30">

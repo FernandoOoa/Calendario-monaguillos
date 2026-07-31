@@ -448,18 +448,19 @@ const setSimulatedTime = (dateString) => {
   // Simulación desactivada en modo producción simplificado
 };
 
-// Simulated Email Notification Logger
-const logSimulatedEmail = (to, subject, bodyHtml) => {
-  const logs = getStorageItem("joselito_email_logs", []);
+// Internal In-App Audit Logger
+const addAuditLog = (action, category, details, userUid = "sistema") => {
+  const logs = getStorageItem("joselito_audit_logs", []);
   const newLog = {
-    id: `email-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    timestamp: getSimulatedTime().toISOString(),
-    to,
-    subject,
-    bodyHtml
+    id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+    timestamp: new Date().toISOString(),
+    action,
+    category,
+    details,
+    userUid
   };
-  setStorageItem("joselito_email_logs", [newLog, ...logs]);
-  window.dispatchEvent(new CustomEvent("simulated-email-sent", { detail: newLog }));
+  setStorageItem("joselito_audit_logs", [newLog, ...logs]);
+  window.dispatchEvent(new CustomEvent("audit-log-added", { detail: newLog }));
 };
 
 // ==========================================
@@ -638,23 +639,31 @@ const simulatedDb = {
   
   registerForMass: async (massId, user, role, dateStr) => {
     const regs = getStorageItem("joselito_registrations", []);
-    
-    // Prevent duplicate registration on the same date (reusing cancelled ones)
+    const masses = getStorageItem("joselito_masses", []);
+    const massData = masses.find(m => m.id === massId);
     const targetDateStr = dateStr || getLocalDateString(getSimulatedTime());
+
+    // Schedule collision check: verify user isn't already registered for another mass at the exact same date & time
+    if (massData) {
+      const userDateRegs = regs.filter(r => r.userUid === user.uid && r.date === targetDateStr && r.status !== "cancelled");
+      const collision = userDateRegs.find(r => r.massId !== massId && r.massTime === massData.time);
+      if (collision) {
+        throw new Error(`Conflicto de horario: Ya estás registrado en "${collision.massTitle}" a las ${collision.massTime} en esta fecha.`);
+      }
+    }
+
+    // Prevent duplicate registration on the same date (reusing cancelled ones)
     const existingIndex = regs.findIndex(r => r.massId === massId && r.userUid === user.uid && r.date === targetDateStr);
     if (existingIndex !== -1) {
       if (regs[existingIndex].status === "cancelled") {
         regs[existingIndex].status = "pending";
         setStorageItem("joselito_registrations", regs);
+        addAuditLog("Reinscripción a Misa", "Misas", `${user.name} se volvió a inscribir en ${massData?.title || 'Misa'} (${targetDateStr})`, user.uid);
         return regs[existingIndex];
       } else {
         throw new Error("Ya estás registrado para esta misa.");
       }
     }
-    
-    // Find mass details to denormalize
-    const masses = getStorageItem("joselito_masses", []);
-    const massData = masses.find(m => m.id === massId);
 
     const newReg = {
       id: `reg-${Date.now()}`,
@@ -663,7 +672,7 @@ const simulatedDb = {
       userUid: user.uid,
       userName: `${user.name} ${user.lastName}`,
       userEmail: user.email,
-      userRole: "Monaguillo",
+      userRole: role || "Monaguillo",
       userPhotoURL: user.photoURL || "",
       status: "pending",
       massTitle: massData?.title || "Misa",
@@ -674,12 +683,7 @@ const simulatedDb = {
     regs.push(newReg);
     setStorageItem("joselito_registrations", regs);
     
-    // Log simulation email
-    logSimulatedEmail(
-      user.email,
-      "Confirmación de Asistencia a Misa",
-      `<p>Hola <strong>${user.name}</strong>, te has anotado como <strong>${role}</strong> para la misa en el calendario del día <strong>${dateStr}</strong>.</p>`
-    );
+    addAuditLog("Inscripción a Misa", "Misas", `${user.name} se inscribió en ${massData?.title || 'Misa'} para la fecha ${targetDateStr}`, user.uid);
     
     return newReg;
   },
@@ -715,11 +719,11 @@ const simulatedDb = {
           });
           setStorageItem("joselito_notifications", notifs);
           
-          // Send simulated email
-          logSimulatedEmail(
-            parent.email,
-            "Cancelación de Servicio - Monaguillos",
-            `<p>Estimado/a ${parent.name}, le notificamos que su hijo/a <strong>${user.name} ${user.lastName}</strong> ha cancelado su turno de servicio programado para la misa del <strong>${dateStr}</strong>.</p>`
+          addAuditLog(
+            "Cancelación de Turno",
+            "Misas",
+            `${user.name} canceló su asistencia a la misa del ${dateStr}. Notificación enviada al tutor ${parent.name}.`,
+            user.uid
           );
         }
       }
@@ -1737,27 +1741,8 @@ export const db = {
     return simulatedDb.createUserProfile(uid, email, name, lastName, role, childEmails);
   },
 
-  getEmailLogs: async () => {
-    if (isRealFirebaseEnabled() && realDb) {
-      try {
-        const q = query(collection(realDb, "mail"), orderBy("timestamp", "desc"), limit(50));
-        const snap = await getDocs(q);
-        return snap.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            to: data.to,
-            subject: data.message?.subject || "",
-            bodyHtml: data.message?.html || "",
-            timestamp: data.timestamp || new Date().toISOString()
-          };
-        });
-      } catch (e) {
-        console.error("Error fetching email logs:", e);
-        return [];
-      }
-    }
-    return [];
+  getAuditLogs: async () => {
+    return getStorageItem("joselito_audit_logs", []);
   }
 };
 
@@ -1768,13 +1753,13 @@ export const dev = {
   getSimulatedTime,
   setSimulatedTime,
   
-  getEmailLogs: () => {
-    return getStorageItem("joselito_email_logs", []);
+  getAuditLogs: () => {
+    return getStorageItem("joselito_audit_logs", []);
   },
   
-  clearEmailLogs: () => {
-    setStorageItem("joselito_email_logs", []);
-    window.dispatchEvent(new Event("simulated-emails-cleared"));
+  clearAuditLogs: () => {
+    setStorageItem("joselito_audit_logs", []);
+    window.dispatchEvent(new Event("audit-logs-cleared"));
   },
   
   resetDatabase: () => {
@@ -1785,7 +1770,7 @@ export const dev = {
     localStorage.removeItem("joselito_notifications");
     localStorage.removeItem("joselito_history");
     localStorage.removeItem("joselito_current_user");
-    localStorage.removeItem("joselito_email_logs");
+    localStorage.removeItem("joselito_audit_logs");
     initSimulatedDb();
     currentSimulatedUser = getStorageItem("joselito_current_user", null);
     if (authStateListener) authStateListener(currentSimulatedUser);
@@ -1795,12 +1780,12 @@ export const dev = {
   toggleRealFirebase,
   isRealFirebaseEnabled,
   
-  // Send a simulated check-in reminder
   triggerCheckInReminder: (user) => {
-    logSimulatedEmail(
-      user.email,
-      "Recordatorio de Check-in - Joselito",
-      `<p>Hola <strong>${user.name}</strong>, recuerda que tu ventana de confirmación de asistencia (Check-in) para tu misa asignada de hoy ya está abierta. Tienes desde 1 hora antes hasta 1 hora después del inicio para registrar tu asistencia en la aplicación.</p>`
+    addAuditLog(
+      "Recordatorio de Check-in",
+      "Notificaciones",
+      `Recordatorio enviado in-app a ${user.name}`,
+      user.uid
     );
     
     // Add in-app notification
