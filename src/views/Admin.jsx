@@ -5,9 +5,10 @@ import { formatTimeToAMPM } from "../utils/time";
 import MassForm from "../components/admin/MassForm";
 import AttendanceInspector from "../components/admin/AttendanceInspector";
 import AuditLogsTable from "../components/admin/AuditLogsTable";
+import UserManagement from "../components/admin/UserManagement";
 
 export default function Admin({ user }) {
-  const [activeTab, setActiveTab] = useState("create"); // 'create', 'manage', 'attendance', 'audit'
+  const [activeTab, setActiveTab] = useState("create"); // 'create', 'manage', 'attendance', 'users', 'audit'
   const [massesList, setMassesList] = useState([]);
   const [editingMass, setEditingMass] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -140,6 +141,16 @@ export default function Admin({ user }) {
         </button>
 
         <button
+          onClick={() => setActiveTab("users")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all whitespace-nowrap ${
+            activeTab === "users" ? "bg-secondary text-black shadow-lg" : "text-gray-300 hover:text-white hover:bg-white/5"
+          }`}
+        >
+          <span className="material-symbols-outlined text-[18px]">manage_accounts</span>
+          Control de Usuarios
+        </button>
+
+        <button
           onClick={() => setActiveTab("audit")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all whitespace-nowrap ${
             activeTab === "audit" ? "bg-secondary text-black shadow-lg" : "text-gray-300 hover:text-white hover:bg-white/5"
@@ -153,6 +164,10 @@ export default function Admin({ user }) {
       {/* Tab Content */}
       {activeTab === "create" && (
         <MassForm onMassCreated={loadMasses} />
+      )}
+
+      {activeTab === "users" && (
+        <UserManagement />
       )}
 
       {activeTab === "manage" && (

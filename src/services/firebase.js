@@ -1743,6 +1743,39 @@ export const db = {
 
   getAuditLogs: async () => {
     return getStorageItem("joselito_audit_logs", []);
+  },
+
+  getAllUsers: async () => {
+    const usersObj = getStorageItem("joselito_users", {});
+    return Object.values(usersObj);
+  },
+
+  updateUserRole: async (uid, newRole) => {
+    const usersObj = getStorageItem("joselito_users", {});
+    if (usersObj[uid]) {
+      usersObj[uid].role = newRole;
+      setStorageItem("joselito_users", usersObj);
+      addAuditLog("Cambio de Rol", "Usuarios", `Se cambió el rol de ${usersObj[uid].name} a ${newRole}`, "admin");
+    }
+  },
+
+  updateUserLevel: async (uid, newLevel) => {
+    const usersObj = getStorageItem("joselito_users", {});
+    if (usersObj[uid]) {
+      usersObj[uid].level = Number(newLevel);
+      setStorageItem("joselito_users", usersObj);
+      addAuditLog("Cambio de Nivel", "Usuarios", `Se actualizó el nivel de ${usersObj[uid].name} a Nivel ${newLevel}`, "admin");
+    }
+  },
+
+  deleteUser: async (uid) => {
+    const usersObj = getStorageItem("joselito_users", {});
+    if (usersObj[uid]) {
+      const userName = usersObj[uid].name;
+      delete usersObj[uid];
+      setStorageItem("joselito_users", usersObj);
+      addAuditLog("Eliminación de Usuario", "Usuarios", `Se eliminó al usuario ${userName}`, "admin");
+    }
   }
 };
 
