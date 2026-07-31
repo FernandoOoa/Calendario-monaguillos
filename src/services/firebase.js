@@ -606,6 +606,23 @@ const simulatedAuth = {
     setStorageItem("joselito_current_user", googleUser);
     if (authStateListener) authStateListener(googleUser);
     return googleUser;
+  },
+
+  signInAsNewUser: async () => {
+    const newUid = `user-new-${Date.now()}`;
+    const newUser = {
+      uid: newUid,
+      email: `nuevo.${Math.floor(Math.random() * 1000)}@ejemplo.com`,
+      name: "Nuevo",
+      lastName: "Usuario",
+      photoURL: "",
+      role: null,
+      isPendingSignUp: true
+    };
+    currentSimulatedUser = newUser;
+    setStorageItem("joselito_current_user", newUser);
+    if (authStateListener) authStateListener(newUser);
+    return newUser;
   }
 };
 
@@ -832,6 +849,16 @@ const simulatedDb = {
     return Object.values(users).filter(u => 
       u.role === "monaguillo" && parent.childEmails.includes(u.email)
     );
+  },
+
+  updateChildProfile: async (childUid, name, lastName) => {
+    const users = getStorageItem("joselito_users", {});
+    if (users[childUid]) {
+      users[childUid].name = name;
+      users[childUid].lastName = lastName;
+      setStorageItem("joselito_users", users);
+    }
+    return users[childUid];
   },
   
   createUserProfile: async (uid, email, name, lastName, role, childEmails = []) => {
@@ -1086,13 +1113,11 @@ export const auth = {
           const userProfile = {
             uid: res.user.uid,
             email: res.user.email,
-            name: res.user.displayName?.split(" ")[0] || "Google User",
+            name: res.user.displayName?.split(" ")[0] || "Nuevo Usuario",
             lastName: res.user.displayName?.split(" ").slice(1).join(" ") || "",
             photoURL: res.user.photoURL || "",
-            role: "monaguillo",
-            level: 1,
-            servedCount: 0,
-            punctuality: 100
+            role: null,
+            isPendingSignUp: true
           };
           await setDoc(doc(realDb, "users", res.user.uid), userProfile);
           return userProfile;
@@ -1108,6 +1133,10 @@ export const auth = {
       }
     }
     return simulatedAuth.signInWithGoogle();
+  },
+
+  signInAsNewUser: async () => {
+    return simulatedAuth.signInAsNewUser();
   }
 };
 
@@ -1732,23 +1761,21 @@ export const db = {
     return simulatedDb.getChildrenForParent(parentUid);
   },
 
-  addChildToParent: async (parentUid, childEmail) => {
+  addChildToParent: async (parentUid, childEmail, childName = "", childLastName = "") => {
     const cleanEmail = childEmail.trim().toLowerCase();
     if (isRealFirebaseEnabled() && realDb) {
       try {
         const parentRef = doc(realDb, "users", parentUid);
         const parentSnap = await getDoc(parentRef);
-        let updatedChildEmails = [];
-        if (parentSnap.exists()) {
-          const parentData = parentSnap.data();
-          updatedChildEmails = parentData.childEmails || [];
-          if (!updatedChildEmails.includes(cleanEmail)) {
-            updatedChildEmails.push(cleanEmail);
-            await updateDoc(parentRef, { childEmails: updatedChildEmails });
-          }
+        const parentData = parentSnap.data();
+        const currentChildEmails = parentData.childEmails || [];
+        
+        let updatedChildEmails = currentChildEmails;
+        if (!currentChildEmails.includes(cleanEmail)) {
+          updatedChildEmails = [...currentChildEmails, cleanEmail];
+          await updateDoc(parentRef, { childEmails: updatedChildEmails });
         }
 
-        // Link child if exists in Firestore or pre-create pending
         const qChild = query(collection(realDb, "users"), where("email", "==", cleanEmail));
         const childSnap = await getDocs(qChild);
         if (childSnap.empty) {
@@ -1756,8 +1783,8 @@ export const db = {
           await setDoc(doc(realDb, "users", childUid), {
             uid: childUid,
             email: cleanEmail,
-            name: "Pendiente",
-            lastName: "Registro",
+            name: childName.trim() || "Monaguillo",
+            lastName: childLastName.trim() || "",
             role: "monaguillo",
             level: 1,
             servedCount: 0,
@@ -1767,9 +1794,10 @@ export const db = {
           });
         } else {
           const childDoc = childSnap.docs[0];
-          await updateDoc(doc(realDb, "users", childDoc.id), {
-            linkedParentUid: parentUid
-          });
+          const updateObj = { linkedParentUid: parentUid };
+          if (childName.trim()) updateObj.name = childName.trim();
+          if (childLastName.trim()) updateObj.lastName = childLastName.trim();
+          await updateDoc(doc(realDb, "users", childDoc.id), updateObj);
         }
 
         addAuditLog("Vínculo Familiar", "Usuarios", `Tutor ${parentUid} vinculó al hijo ${cleanEmail}`, parentUid);
@@ -1779,7 +1807,6 @@ export const db = {
       }
     }
 
-    // Local simulation fallback
     const users = getStorageItem("joselito_users", {});
     const parentUser = users[parentUid] || { uid: parentUid, childEmails: [] };
     if (!parentUser.childEmails) parentUser.childEmails = [];
@@ -1791,14 +1818,16 @@ export const db = {
     const childUser = Object.values(users).find(u => u.email?.toLowerCase() === cleanEmail);
     if (childUser) {
       childUser.linkedParentUid = parentUid;
+      if (childName.trim()) childUser.name = childName.trim();
+      if (childLastName.trim()) childUser.lastName = childLastName.trim();
       users[childUser.uid] = childUser;
     } else {
       const childUid = `child-uid-${Date.now()}`;
       users[childUid] = {
         uid: childUid,
         email: cleanEmail,
-        name: "Pendiente",
-        lastName: "Registro",
+        name: childName.trim() || "Monaguillo",
+        lastName: childLastName.trim() || "",
         role: "monaguillo",
         level: 1,
         servedCount: 0,
@@ -1810,6 +1839,20 @@ export const db = {
     setStorageItem("joselito_users", users);
     addAuditLog("Vínculo Familiar", "Usuarios", `Tutor ${parentUid} vinculó al hijo ${cleanEmail}`, parentUid);
     return parentUser;
+  },
+
+  updateChildProfile: async (childUid, name, lastName) => {
+    if (isRealFirebaseEnabled() && realDb) {
+      try {
+        await updateDoc(doc(realDb, "users", childUid), {
+          name,
+          lastName
+        });
+      } catch (e) {
+        console.error("Error updating child profile in Firestore:", e);
+      }
+    }
+    return simulatedDb.updateChildProfile(childUid, name, lastName);
   },
   
   createUserProfile: async (uid, email, name, lastName, role, childEmails = []) => {

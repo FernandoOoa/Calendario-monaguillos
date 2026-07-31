@@ -1,14 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { auth, db } from "../services/firebase";
+import { useAuth } from "../context/AuthContext";
 
 export default function Auth({ onAuthSuccess }) {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // New Google Account Onboarding Setup state (for first-time log-ins)
-  const [onboardingUser, setOnboardingUser] = useState(null); // holds temp google user info
+  // New Account Onboarding Setup state (for first-time log-ins)
+  const [onboardingUser, setOnboardingUser] = useState(null); // holds temp user info
   const [onboardingRole, setOnboardingRole] = useState("monaguillo");
   const [childEmails, setChildEmails] = useState([""]);
+
+  useEffect(() => {
+    if (user && (!user.role || user.isPendingSignUp)) {
+      setOnboardingUser(user);
+    }
+  }, [user]);
 
   // Handle Google Sign-In click directly using Firebase Auth
   const handleGoogleClick = async () => {
@@ -23,9 +31,22 @@ export default function Auth({ onAuthSuccess }) {
     }
   };
 
+  const handleCreateNewUserClick = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      const userProfile = await auth.signInAsNewUser();
+      checkUserOnboarding(userProfile);
+    } catch (err) {
+      setError("Error al iniciar el registro de nuevo usuario.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Inspect if the signed-in user has a role profile, otherwise trigger onboarding
   const checkUserOnboarding = async (userProfile) => {
-    if (!userProfile.role || (userProfile.role === "monaguillo" && userProfile.isPendingSignUp)) {
+    if (!userProfile || !userProfile.role || userProfile.isPendingSignUp) {
       // New user or pending child profile setup needed
       setOnboardingUser(userProfile);
     } else {
@@ -167,11 +188,11 @@ export default function Auth({ onAuthSuccess }) {
 
           {/* 1. GOOGLE SIGN IN SCREEN */}
           {!onboardingUser && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Mobile-only subhead */}
               <div className="block md:hidden text-center">
                 <h2 className="text-lg font-bold text-white">Iniciar Sesión</h2>
-                <p className="text-xs text-white/50 mt-1">Conéctate utilizando tu cuenta de Google.</p>
+                <p className="text-xs text-white/50 mt-1">Conéctate utilizando tu cuenta de Google o crea una cuenta nueva.</p>
               </div>
 
               <button
@@ -186,6 +207,22 @@ export default function Auth({ onAuthSuccess }) {
                   src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
                 />
                 {loading ? "Cargando..." : "Continuar con Google"}
+              </button>
+
+              <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-white/10"></div>
+                <span className="flex-shrink mx-3 text-[10px] text-white/40 font-bold uppercase tracking-wider">o registrar nueva cuenta</span>
+                <div className="flex-grow border-t border-white/10"></div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCreateNewUserClick}
+                disabled={loading}
+                className="w-full h-12 bg-secondary/10 hover:bg-secondary/20 border border-secondary/30 text-secondary flex items-center justify-center gap-2 rounded-2xl transition-all active:scale-95 text-xs font-bold"
+              >
+                <span className="material-symbols-outlined text-[18px]">person_add</span>
+                Registrarme como Papá o Monaguillo
               </button>
             </div>
           )}

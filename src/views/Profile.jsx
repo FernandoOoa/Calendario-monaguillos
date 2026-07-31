@@ -11,11 +11,6 @@ export default function Profile({ user, onUpdateUser }) {
   const [parishRecurringMasses, setParishRecurringMasses] = useState([]);
   const [selectedRecurringMasses, setSelectedRecurringMasses] = useState([]);
 
-  // New child form for parents
-  const [newChildEmail, setNewChildEmail] = useState("");
-  const [childFormError, setChildFormError] = useState("");
-  const [childFormSuccess, setChildFormSuccess] = useState("");
-
   const loadProfileData = async () => {
     if (!user) return;
     try {
@@ -130,6 +125,18 @@ export default function Profile({ user, onUpdateUser }) {
     }
   };
 
+  // New child form for parents
+  const [newChildEmail, setNewChildEmail] = useState("");
+  const [newChildName, setNewChildName] = useState("");
+  const [newChildLastName, setNewChildLastName] = useState("");
+  const [childFormError, setChildFormError] = useState("");
+  const [childFormSuccess, setChildFormSuccess] = useState("");
+
+  // Edit child modal
+  const [editingChild, setEditingChild] = useState(null);
+  const [editChildName, setEditChildName] = useState("");
+  const [editChildLastName, setEditChildLastName] = useState("");
+
   const handleAddChild = async (e) => {
     e.preventDefault();
     setChildFormError("");
@@ -144,9 +151,11 @@ export default function Profile({ user, onUpdateUser }) {
         return;
       }
 
-      const updatedParent = await db.addChildToParent(user.uid, targetEmail);
+      const updatedParent = await db.addChildToParent(user.uid, targetEmail, newChildName, newChildLastName);
       setChildFormSuccess(`¡Hijo vinculado con éxito! (${targetEmail})`);
       setNewChildEmail("");
+      setNewChildName("");
+      setNewChildLastName("");
       loadProfileData();
 
       if (onUpdateUser) {
@@ -158,6 +167,25 @@ export default function Profile({ user, onUpdateUser }) {
     } catch (err) {
       console.error("Error linking child:", err);
       setChildFormError(err.message || "Error al vincular el correo del hijo.");
+    }
+  };
+
+  const handleStartEditChild = (child) => {
+    setEditingChild(child);
+    setEditChildName(child.name === "Pendiente" ? "" : child.name);
+    setEditChildLastName(child.lastName === "Registro" ? "" : child.lastName);
+  };
+
+  const handleSaveChildProfile = async (e) => {
+    e.preventDefault();
+    if (!editingChild) return;
+    try {
+      await db.updateChildProfile(editingChild.uid, editChildName, editChildLastName);
+      alerts.alert(`Perfil de ${editChildName} actualizado correctamente.`, "Nombre Actualizado", "success");
+      setEditingChild(null);
+      loadProfileData();
+    } catch (err) {
+      alerts.alert("Error al actualizar el nombre del hijo.", "Error", "error");
     }
   };
 
@@ -363,21 +391,33 @@ export default function Profile({ user, onUpdateUser }) {
               ) : (
                 <div className="space-y-3 mb-6">
                   {children.map((child) => (
-                    <div key={child.uid} className="p-3 bg-white/[0.02] rounded-2xl flex items-center justify-between border border-white/5">
-                      <div>
-                        <p className="text-xs font-bold text-on-surface">
-                          {child.name === "Pendiente" ? `Pendiente: ${child.email}` : `${child.name} ${child.lastName}`}
+                    <div key={child.uid} className="p-3.5 bg-white/[0.02] rounded-2xl flex items-center justify-between border border-white/5 gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-on-surface truncate">
+                          {child.name === "Pendiente" ? `Pendiente (${child.email})` : `${child.name} ${child.lastName}`}
                         </p>
                         <p className="text-[10px] text-on-surface-variant">
-                          {child.isPendingSignUp ? "Esperando registro..." : `Nivel ${child.level} • ${child.servedCount} misas`}
+                          {child.email} • {child.isPendingSignUp ? "Sin cuenta activa" : `Nivel ${child.level} • ${child.servedCount} misas`}
                         </p>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[8px] font-bold ${child.isPendingSignUp
-                          ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                          : "bg-green-500/10 text-green-400 border border-green-500/20"
-                        }`}>
-                        {child.isPendingSignUp ? "PENDIENTE" : "ACTIVO"}
-                      </span>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handleStartEditChild(child)}
+                          className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10px] font-bold border border-white/10 flex items-center gap-1 transition-all"
+                          title="Asignar o editar nombre del hijo"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">edit</span>
+                          Editar Nombre
+                        </button>
+
+                        <span className={`px-2 py-0.5 rounded text-[8px] font-bold ${child.isPendingSignUp
+                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                            : "bg-green-500/10 text-green-400 border border-green-500/20"
+                          }`}>
+                          {child.isPendingSignUp ? "GESTIONADO" : "ACTIVO"}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -390,19 +430,101 @@ export default function Profile({ user, onUpdateUser }) {
                 {childFormError && <p className="text-[10px] text-error font-bold">{childFormError}</p>}
                 {childFormSuccess && <p className="text-[10px] text-green-400 font-bold">{childFormSuccess}</p>}
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Nombre del hijo (ej. Mateo)"
+                    value={newChildName}
+                    onChange={(e) => setNewChildName(e.target.value)}
+                    className="h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-xs text-on-surface outline-none focus:border-primary placeholder:text-on-surface-variant/40"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Apellido (ej. García)"
+                    value={newChildLastName}
+                    onChange={(e) => setNewChildLastName(e.target.value)}
+                    className="h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-xs text-on-surface outline-none focus:border-primary placeholder:text-on-surface-variant/40"
+                  />
+                </div>
+
                 <div className="flex gap-2">
                   <input
+                    required
                     type="email"
-                    placeholder="hijo@ejemplo.com"
+                    placeholder="Correo del hijo (ej. mateo@ejemplo.com)"
                     value={newChildEmail}
                     onChange={(e) => setNewChildEmail(e.target.value)}
                     className="flex-1 h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-xs text-on-surface outline-none focus:border-primary placeholder:text-on-surface-variant/40"
                   />
                   <button
                     type="submit"
-                    className="bg-primary hover:bg-primary/90 text-white px-3 rounded-lg text-xs font-bold active:scale-95 transition-all"
+                    className="bg-primary hover:bg-primary/90 text-white px-3.5 rounded-lg text-xs font-bold active:scale-95 transition-all shrink-0"
                   >
-                    Vincular
+                    Vincular Hijo
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Edit Child Profile Modal */}
+          {editingChild && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+              <form onSubmit={handleSaveChildProfile} className="glass-card max-w-md w-full p-6 space-y-4 border border-white/20 rounded-3xl">
+                <div className="flex justify-between items-center border-b border-white/10 pb-3">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-secondary">child_care</span>
+                    Asignar Nombre a {editingChild.email}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setEditingChild(null)}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+
+                <p className="text-xs text-on-surface-variant">
+                  Escribe el nombre y apellido con el que tu hijo aparecerá registrado en las misas y calendarios.
+                </p>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-300 uppercase mb-1">Nombre</label>
+                  <input
+                    required
+                    type="text"
+                    value={editChildName}
+                    onChange={(e) => setEditChildName(e.target.value)}
+                    placeholder="ej. Mateo"
+                    className="w-full bg-[#1c1c1c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-secondary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-300 uppercase mb-1">Apellido</label>
+                  <input
+                    type="text"
+                    value={editChildLastName}
+                    onChange={(e) => setEditChildLastName(e.target.value)}
+                    placeholder="ej. García"
+                    className="w-full bg-[#1c1c1c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-secondary"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setEditingChild(null)}
+                    className="px-4 py-2 bg-white/10 text-white font-bold text-xs rounded-xl"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-secondary text-black font-bold text-xs rounded-xl"
+                  >
+                    Guardar Nombre
                   </button>
                 </div>
               </form>
