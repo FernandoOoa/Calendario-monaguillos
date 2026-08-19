@@ -9,12 +9,18 @@ export default function Auth({ onAuthSuccess }) {
 
   // New Account Onboarding Setup state (for first-time log-ins)
   const [onboardingUser, setOnboardingUser] = useState(null); // holds temp user info
+  const [userName, setUserName] = useState("");
+  const [userLastName, setUserLastName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [onboardingRole, setOnboardingRole] = useState("monaguillo");
   const [childEmails, setChildEmails] = useState([""]);
 
   useEffect(() => {
     if (user && (!user.role || user.isPendingSignUp)) {
       setOnboardingUser(user);
+      setUserName(user.name && user.name !== "Nuevo" && user.name !== "Google User" ? user.name : "");
+      setUserLastName(user.lastName && user.lastName !== "Usuario" ? user.lastName : "");
+      setUserEmail(user.email || "");
     }
   }, [user]);
 
@@ -26,6 +32,7 @@ export default function Auth({ onAuthSuccess }) {
       const userProfile = await auth.signInWithGoogle();
       checkUserOnboarding(userProfile);
     } catch (err) {
+      console.error("Google auth error:", err);
       setError(err.message || "Error al iniciar sesión con Google.");
       setLoading(false);
     }
@@ -38,7 +45,8 @@ export default function Auth({ onAuthSuccess }) {
       const userProfile = await auth.signInAsNewUser();
       checkUserOnboarding(userProfile);
     } catch (err) {
-      setError("Error al iniciar el registro de nuevo usuario.");
+      console.error("New user error:", err);
+      setError(err.message || "Error al iniciar el registro de nuevo usuario.");
     } finally {
       setLoading(false);
     }
@@ -47,10 +55,11 @@ export default function Auth({ onAuthSuccess }) {
   // Inspect if the signed-in user has a role profile, otherwise trigger onboarding
   const checkUserOnboarding = async (userProfile) => {
     if (!userProfile || !userProfile.role || userProfile.isPendingSignUp) {
-      // New user or pending child profile setup needed
       setOnboardingUser(userProfile);
+      setUserName(userProfile?.name && userProfile.name !== "Nuevo" && userProfile.name !== "Google User" ? userProfile.name : "");
+      setUserLastName(userProfile?.lastName && userProfile.lastName !== "Usuario" ? userProfile.lastName : "");
+      setUserEmail(userProfile?.email || "");
     } else {
-      // Profile is complete, proceed directly
       onAuthSuccess(userProfile);
     }
   };
@@ -61,6 +70,22 @@ export default function Auth({ onAuthSuccess }) {
     setError("");
     setLoading(true);
 
+    const finalEmail = (userEmail || onboardingUser?.email || "").trim().toLowerCase();
+    const finalName = (userName || onboardingUser?.name || "Usuario").trim();
+    const finalLastName = (userLastName || onboardingUser?.lastName || "").trim();
+
+    if (!finalEmail) {
+      setError("Por favor ingresa un correo electrónico válido.");
+      setLoading(false);
+      return;
+    }
+
+    if (!finalName) {
+      setError("Por favor ingresa tu nombre.");
+      setLoading(false);
+      return;
+    }
+
     const filteredChildEmails = childEmails.map(c => c.trim()).filter(c => c !== "");
 
     if (onboardingRole === "padre" && filteredChildEmails.length === 0) {
@@ -70,17 +95,19 @@ export default function Auth({ onAuthSuccess }) {
     }
 
     try {
+      const targetUid = onboardingUser?.uid || `user-${Date.now()}`;
       const finalProfile = await db.createUserProfile(
-        onboardingUser.uid,
-        onboardingUser.email,
-        onboardingUser.name,
-        onboardingUser.lastName,
+        targetUid,
+        finalEmail,
+        finalName,
+        finalLastName,
         onboardingRole,
         onboardingRole === "padre" ? filteredChildEmails : []
       );
       onAuthSuccess(finalProfile);
     } catch (err) {
-      setError("Error completando el registro. Intenta de nuevo.");
+      console.error("Onboarding submission error:", err);
+      setError(err.message || "Error completando el registro. Intenta de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -173,8 +200,8 @@ export default function Auth({ onAuthSuccess }) {
             </h2>
             <p className="text-xs text-white/60 mt-1.5 leading-relaxed">
               {onboardingUser 
-                ? "Dinos cuál será tu función en el sistema de monaguillos."
-                : "Regístrate o inicia sesión con tu cuenta de Google."}
+                ? "Completa tus datos personales y selecciona tu función."
+                : "Regístrate o inicia sesión seleccionando tu cuenta de Google."}
             </p>
           </div>
 
@@ -186,13 +213,13 @@ export default function Auth({ onAuthSuccess }) {
             </div>
           )}
 
-          {/* 1. GOOGLE SIGN IN SCREEN */}
+          {/* 1. GOOGLE SIGN IN / LOGIN SELECTION SCREEN */}
           {!onboardingUser && (
             <div className="space-y-4">
               {/* Mobile-only subhead */}
               <div className="block md:hidden text-center">
                 <h2 className="text-lg font-bold text-white">Iniciar Sesión</h2>
-                <p className="text-xs text-white/50 mt-1">Conéctate utilizando tu cuenta de Google o crea una cuenta nueva.</p>
+                <p className="text-xs text-white/50 mt-1">Conéctate seleccionando tu cuenta de Google.</p>
               </div>
 
               <button
@@ -200,13 +227,14 @@ export default function Auth({ onAuthSuccess }) {
                 onClick={handleGoogleClick}
                 disabled={loading}
                 className="w-full h-14 bg-white/5 border border-white/10 hover:border-primary/50 hover:bg-white/10 flex items-center justify-center gap-3 rounded-2xl transition-all active:scale-95 text-sm font-bold text-white shadow-sm hover:shadow-primary/5 group"
+                title="Abrir selector de cuentas de Google"
               >
                 <img
                   alt="Google Logo"
                   className="w-5 h-5 transition-transform group-hover:scale-110"
                   src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
                 />
-                {loading ? "Cargando..." : "Continuar con Google"}
+                {loading ? "Cargando..." : "Escoger Cuenta de Google"}
               </button>
 
               <div className="relative flex py-2 items-center">
@@ -227,43 +255,81 @@ export default function Auth({ onAuthSuccess }) {
             </div>
           )}
 
-          {/* 2. FIRST TIME GOOGLE ONBOARDING SETUP */}
+          {/* 2. ONBOARDING / COMPLETAR REGISTRO FORM */}
           {onboardingUser && (
-            <form onSubmit={handleOnboardingSubmit} className="space-y-6">
-              {/* Onboarding text (Mobile only subhead) */}
-              <div className="block md:hidden text-center">
-                <h2 className="text-lg font-bold text-white">Completar Registro</h2>
-                <p className="text-xs text-white/50 mt-1 leading-relaxed">
-                  Hola <span className="text-primary font-bold">{onboardingUser.email}</span>, dinos cuál será tu función:
-                </p>
+            <form onSubmit={handleOnboardingSubmit} className="space-y-5">
+              {/* Account Chooser Link */}
+              <div className="flex items-center justify-between bg-white/5 px-3.5 py-2.5 rounded-xl border border-white/10 text-xs">
+                <span className="text-white/60 text-[11px] truncate">
+                  Cuenta: <strong className="text-white">{onboardingUser.email || userEmail || "Nueva Cuenta"}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleGoogleClick}
+                  className="text-primary hover:text-primary-container font-bold text-[11px] flex items-center gap-1 shrink-0 ml-2"
+                >
+                  <span className="material-symbols-outlined text-[14px]">switch_account</span>
+                  Cambiar cuenta
+                </button>
+              </div>
+
+              {/* User personal data fields */}
+              <div className="space-y-3">
+                <label className="block text-xs font-bold text-white/70 ml-1">Tus Datos Personales</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    required
+                    type="text"
+                    placeholder="Nombre (ej. Juan)"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    className="h-11 px-3.5 rounded-xl border border-white/10 text-xs outline-none bg-white/5 text-white focus:border-primary focus:bg-white/10 transition-all"
+                  />
+                  <input
+                    required
+                    type="text"
+                    placeholder="Apellido (ej. Pérez)"
+                    value={userLastName}
+                    onChange={(e) => setUserLastName(e.target.value)}
+                    className="h-11 px-3.5 rounded-xl border border-white/10 text-xs outline-none bg-white/5 text-white focus:border-primary focus:bg-white/10 transition-all"
+                  />
+                </div>
+                <input
+                  required
+                  type="email"
+                  placeholder="Correo electrónico"
+                  value={userEmail}
+                  onChange={(e) => setUserEmail(e.target.value)}
+                  className="w-full h-11 px-3.5 rounded-xl border border-white/10 text-xs outline-none bg-white/5 text-white focus:border-primary focus:bg-white/10 transition-all"
+                />
               </div>
 
               {/* Role Question */}
               <div className="space-y-2.5">
-                <label className="block text-xs font-bold text-white/70 ml-1">¿Quién eres?</label>
-                <div className="grid grid-cols-2 gap-4">
+                <label className="block text-xs font-bold text-white/70 ml-1">¿Cuál es tu función?</label>
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setOnboardingRole("monaguillo")}
-                    className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-2 ${
+                    className={`p-3.5 rounded-2xl border transition-all flex flex-col items-center justify-center gap-1.5 ${
                       onboardingRole === "monaguillo"
                         ? "border-primary bg-primary/20 text-white shadow-lg shadow-primary/10"
                         : "border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white"
                     }`}
                   >
-                    <span className="material-symbols-outlined text-primary text-3xl">child_care</span>
+                    <span className="material-symbols-outlined text-primary text-2xl">child_care</span>
                     <span className="text-xs font-bold">Monaguillo</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setOnboardingRole("padre")}
-                    className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-2 ${
+                    className={`p-3.5 rounded-2xl border transition-all flex flex-col items-center justify-center gap-1.5 ${
                       onboardingRole === "padre"
                         ? "border-primary bg-primary/20 text-white shadow-lg shadow-primary/10"
                         : "border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white"
                     }`}
                   >
-                    <span className="material-symbols-outlined text-primary text-3xl">family_restroom</span>
+                    <span className="material-symbols-outlined text-primary text-2xl">family_restroom</span>
                     <span className="text-xs font-bold">Padre / Tutor</span>
                   </button>
                 </div>
@@ -310,7 +376,7 @@ export default function Auth({ onAuthSuccess }) {
                     ))}
                   </div>
                   <p className="text-[10px] text-primary/70 mt-1 ml-1 italic font-semibold">
-                    Vincula la cuenta de tu hijo para monitorear sus turnos y asistencias.
+                    Vincula la cuenta de tu hijo para monitorear sus turnos e inscribirlo en misas.
                   </p>
                 </div>
               )}
@@ -318,9 +384,9 @@ export default function Auth({ onAuthSuccess }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-14 bg-primary text-white rounded-2xl font-bold text-sm hover:bg-primary-container transition-all shadow-md active:scale-95 flex items-center justify-center shadow-primary/10"
+                className="w-full h-13 bg-primary text-white rounded-2xl font-bold text-sm hover:bg-primary-container transition-all shadow-md active:scale-95 flex items-center justify-center shadow-primary/10 mt-2"
               >
-                {loading ? "Guardando Perfil..." : "Completar Registro"}
+                {loading ? "Guardando Registro..." : "Completar Registro"}
               </button>
             </form>
           )}

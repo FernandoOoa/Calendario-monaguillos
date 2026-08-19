@@ -1107,6 +1107,7 @@ export const auth = {
     if (isRealFirebaseEnabled() && realAuth && realDb) {
       try {
         const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
         const res = await signInWithPopup(realAuth, provider);
         const userDoc = await getDoc(doc(realDb, "users", res.user.uid));
         if (!userDoc.exists()) {
